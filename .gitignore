@@ -1,0 +1,39 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Other
+*.log
+*.pyc
+.DS_Store
+
+.env
+
+voices.json
+examples/
+data/
+.venv-*/
