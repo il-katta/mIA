@@ -1,6 +1,6 @@
 -r requirements.txt
 
-jupyterlab
-notebook
+jupyterlab==4.0.4
+notebook==7.0.2
 jupyter
 ipykernel

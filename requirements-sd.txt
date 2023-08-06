@@ -1,0 +1,10 @@
+# image generation
+git+https://github.com/huggingface/diffusers#egg=diffusers
+omegaconf==2.3.0
+torch==2.0.1
+transformers==4.31.0
+Pillow==10.0.0
+
+# sdxl refiner
+#invisible_watermark
+safetensors==0.3.1

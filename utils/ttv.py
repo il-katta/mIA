@@ -5,11 +5,24 @@ import tempfile
 from typing import Optional, Dict, List
 
 import elevenlabs
-from bark import SAMPLE_RATE, generate_audio, preload_models
-from bark.generation import CUR_PATH
 
-from scipy.io.wavfile import write as write_wav
-from transformers import AutoProcessor, BarkModel, BarkProcessor
+import utils
+
+try:
+    from bark import SAMPLE_RATE
+
+    bark_available = (
+            utils.package_exists("transformers") and
+            utils.package_exists("bitsandbytes") and
+            utils.package_exists("torch") and
+            utils.package_exists("accelerate") and
+            utils.package_exists("scipy")
+    )
+except ImportError:
+    SAMPLE_RATE = 24_000
+    bark_available = False
+
+from bark.generation import CUR_PATH
 
 import config
 
@@ -53,7 +66,12 @@ class TextToVoice:
         return values
 
     @staticmethod
+    def bark_available():
+        return bark_available
+
+    @staticmethod
     def static_bark_init(device="cpu"):
+        from bark import preload_models
         preload_models(
             text_use_gpu=False if device == "cpu" else True,
             coarse_use_gpu=False if device == "cpu" else True,
@@ -62,13 +80,16 @@ class TextToVoice:
         )
 
     @classmethod
-    def static_bark_generate(cls, text: str, voice_id: str, text_temp: float = 0.7, waveform_temp: float = 0.7, device="cpu") -> str:
+    def static_bark_generate(cls, text: str, voice_id: str, text_temp: float = 0.7, waveform_temp: float = 0.7,
+                             device="cpu") -> str:
+        from bark import generate_audio
         cls.static_bark_init(device=device)
         audio_array = generate_audio(text, history_prompt=voice_id, text_temp=text_temp, waveform_temp=waveform_temp)
         return cls.bark_audio_array_to_file(audio_array)
 
     @staticmethod
     def bark_audio_array_to_file(audio_array, sample_rate=SAMPLE_RATE) -> str:
+        from scipy.io.wavfile import write as write_wav
         audiofile = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
 
         write_wav(audiofile, sample_rate, audio_array)
@@ -78,6 +99,7 @@ class TextToVoice:
     _bark_model = None
 
     def bark_init(self, device="cpu", load_in_4bit=False):
+        from transformers import AutoProcessor, BarkModel, BarkProcessor
         if load_in_4bit:
             try:
                 from transformers import BitsAndBytesConfig
@@ -97,20 +119,22 @@ class TextToVoice:
                 load_in_4bit = False
                 bnb_config = None
         else:
-             bnb_config = None
+            bnb_config = None
 
         if self._bark_processor is None:
             self._bark_processor = AutoProcessor.from_pretrained("suno/bark")
         if self._bark_model is None:
             if load_in_4bit:
-                self._bark_model = BarkModel.from_pretrained("suno/bark", quantization_config=bnb_config, device_map='auto')
+                self._bark_model = BarkModel.from_pretrained("suno/bark", quantization_config=bnb_config,
+                                                             device_map='auto')
             else:
                 self._bark_model = BarkModel.from_pretrained("suno/bark").to(device)
         # self._bark_model.generation_config.coarse_acoustics_config.temperature
         # self._bark_model.generation_config.fine_acoustics_config.temperature
         # self._bark_model.generation_config.semantic_config.temperature
 
-    def bark_generate(self, text: str, voice_id: str, text_temp: float = 0.7, waveform_temp: float = 0.7, device="cpu") -> str:
+    def bark_generate(self, text: str, voice_id: str, text_temp: float = 0.7, waveform_temp: float = 0.7,
+                      device="cpu") -> str:
         self.bark_init(device=device)
         inputs = self._bark_processor(text, voice_preset=voice_id).to(device)
         audio_array = self._bark_model.generate(**inputs)
