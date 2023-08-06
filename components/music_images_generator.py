@@ -1,8 +1,7 @@
 import json
 from typing import List, Tuple, Any
 
-from utils.image_generator import ImageGenerator
-from utils.prompt_generator import PromptGenerator
+
 
 import config
 from bot import MiaBot
@@ -70,6 +69,8 @@ def clean_all():
 
 
 def gui(bot: MiaBot, conf: config.Config):
+    from utils.image_generator import ImageGenerator
+    from utils.prompt_generator import PromptGenerator
     image_generator = ImageGenerator(model_name="rundiffusionFX")
     prompt_generator = PromptGenerator()
 

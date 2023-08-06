@@ -10,7 +10,7 @@ import utils
 
 try:
     from bark import SAMPLE_RATE
-
+    from bark.generation import CUR_PATH
     bark_available = (
             utils.package_exists("transformers") and
             utils.package_exists("bitsandbytes") and
@@ -21,8 +21,9 @@ try:
 except ImportError:
     SAMPLE_RATE = 24_000
     bark_available = False
+    CUR_PATH = None
 
-from bark.generation import CUR_PATH
+
 
 import config
 
@@ -143,6 +144,8 @@ class TextToVoice:
 
     @staticmethod
     def bark_voices() -> List[str]:
+        if not bark_available:
+            return []
         _files = set()
 
         def _get_files(path=""):

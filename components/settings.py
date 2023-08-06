@@ -122,7 +122,9 @@ def gui(ttv: TextToVoice, conf: config.Config):
             def test_voice(status: str, elevenlabs_voice: str, bark_voice_id: str) -> str:
                 if status == config.GENERATOR_ELEVENLABS:
                     elevenlabs_voice_id = elevenlabs_voices_radio_change(elevenlabs_voice)
-                    example_filepath = config.DATA_DIR / "elevenlabs" / f"{elevenlabs_voice_id}.mp3"
+                    example_dirpath = config.DATA_DIR / "elevenlabs"
+                    os.makedirs(example_dirpath, exist_ok=True)
+                    example_filepath = example_dirpath / f"{elevenlabs_voice_id}.mp3"
                     if not os.path.exists(example_filepath):
                         filepath = ttv.elevenlabs_generate(
                             "Ciao. Come va? Sono un'intelligenza artificiale, un sistema avanzato progettato per interagire con gli utenti.",
