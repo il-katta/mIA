@@ -1,15 +1,16 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import logging
 import os
 
 import gradio as gr
-from dotenv import load_dotenv
 
 from bot import MiaBot
-from components import settings, chat
-from ttl import TextToVoice
+from components import settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark
+from utils.ttv import TextToVoice
 import config
-
-load_dotenv()
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -24,17 +25,34 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
 with gr.Blocks() as demo:
     conf = config.load_config()
     bot = MiaBot(conf)
-    ttl = TextToVoice(config.ELEVENLABS_DEFAULT_APIKEY)
+    ttv = TextToVoice(config.ELEVENLABS_DEFAULT_APIKEY)
 
-    with gr.Tab("Chat"):
-        chat.gui(bot=bot, conf=conf)
+    hello_text = gr.Label("Hello there! I'm mIA, your personal assistant. How can I help you?")
+
+    if chat.is_available():
+        with gr.Tab("Chat"):
+            chat.gui(bot=bot, conf=conf)
+
+    if music_images_generator.is_available():
+        with gr.Tab("Music Images Generator"):
+            music_images_generator.gui(bot=bot, conf=conf)
+
+    if remove_backgroud.is_available():
+        with gr.Tab("Image background remover"):
+            remove_backgroud.gui()
+
+    if image_upscale.is_available():
+        with gr.Tab("Image upscaler"):
+            image_upscale.gui()
+
+    if invisible_watermark.is_available():
+        with gr.Tab("Invisible Watermark"):
+            invisible_watermark.gui()
 
     with gr.Tab("Settings"):
-        settings.gui(ttl=ttl, conf=conf)
+        settings.gui(ttv=ttv, conf=conf)
 
-
-
-demo.queue(concurrency_count=1)
+demo.queue(concurrency_count=2)
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"})
+    demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)

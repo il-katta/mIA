@@ -3,31 +3,48 @@ import os
 from multiprocessing import Queue
 from threading import Lock
 from threading import Thread
-from typing import List
+from typing import List, Generator, Tuple
 from typing import Optional
 
 import elevenlabs
 import gradio as gr
-from langchain.chains import ConversationChain
+
+from langchain.chains import ConversationChain, LLMMathChain
 from langchain.chat_models import ChatOpenAI
+from langchain.agents import Tool, initialize_agent, AgentType, load_tools
 
 import config
 from callbackhandlers import OnStream, StreamMessage
-from ttl import TextToVoice
+from utils.ttv import TextToVoice
 
 __all__ = ["MiaBot"]
 
 
 class MiaBot:
-    def __init__(self, conf: config.Config):
+    def __init__(self, conf: config.Config, agent_type: AgentType = AgentType.OPENAI_MULTI_FUNCTIONS):
         self.lock = Lock()
         llm = ChatOpenAI(
             model_name=conf.openai_model_state.value,
             temperature=conf.openai_temperature_state.value,
             streaming=True,
-            #max_tokens=500,
+            # max_tokens=500,
         )
-        self.chain = ConversationChain(llm=llm)
+
+        if agent_type == AgentType.OPENAI_FUNCTIONS or agent_type == AgentType.OPENAI_MULTI_FUNCTIONS:
+            tools = [
+                Tool(
+                    name="Math",
+                    func=LLMMathChain.from_llm(llm=llm, verbose=True).run,
+                    description="usefull when you need to do some math",
+                ),
+            ]
+            self.chain = initialize_agent(llm=llm, tools=tools, agent=agent_type, verbose=True)
+        elif agent_type == AgentType.ZERO_SHOT_REACT_DESCRIPTION:
+            tools = load_tools(["llm-math"], llm=llm)
+            self.chain = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
+        else:
+            self.chain = ConversationChain(llm=llm)
+
         self._logger = logging.getLogger("MiaBot")
         self._logger.debug("MiaBot initialized")
         self._ttl = TextToVoice(os.getenv("ELEVENLABS_API_KEY"))
@@ -42,12 +59,16 @@ class MiaBot:
         history = history + [(text, None)]
         return history, gr.update(value="", interactive=False)
 
-    def _generate_response(self, question: str, history: List[List[str]], on_final_response):
+    def _generate_response(self, question: str) -> Generator[None, str, Optional[Tuple[str,str]]]:
         def run_chain(qst: str, clb: OnStream, q: Queue):
-            r = self.chain.run(qst, callbacks=[clb])
-            self._logger.debug(f"response: {r}")
-            if r:
-                q.put(r)
+            try:
+                r = self.chain.run(qst, callbacks=[clb])
+                self._logger.debug(f"response: {r}")
+                if r:
+                    q.put(r)
+            except Exception as ex:
+                self._logger.exception(ex)
+                # q.put(str(ex))
 
         finale = Queue()
         queue = Queue()
@@ -55,16 +76,19 @@ class MiaBot:
 
         thr = Thread(target=run_chain, args=(question, callback, finale))
         thr.start()
+        cum = ""
         while thr.is_alive() or not queue.empty():
             try:
                 message: StreamMessage = queue.get()
                 if message.type == "token" and message.data:
-                    token = message.data
-                    history[-1][1] += str(token)
-                    yield history, None
-                if message.type == "response" and message.data:
-                    history[-1][1] = message.data
-                    yield history, None
+                    cum += str(message.data)
+                    yield 'partial', cum
+                elif message.type == "response" and message.data:
+                    yield 'final', message.data
+                elif message.type == 'llm_end':
+                    yield 'end', None
+                else:
+                    self._logger.info(f"{message.type}: invalid message - {message.data}")
             except ValueError as e:
                 self._logger.exception(e)
                 break
@@ -78,54 +102,64 @@ class MiaBot:
                 self._logger.exception(e)
                 break
 
+        response = None
         if not finale.empty():
             response = finale.get()
-        else:
-            response = history[-1][1]
+            yield 'complete', response
+
         finale.close()
         queue.close()
-        on_final_response(response)
+        return response
 
     def on_message(
             self,
             history,
-            ttl_generator_state: str = config.GENERATOR_DISABLED,
+            ttv_generator_state: str = config.GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = None,
             bark_voice_id: Optional[str] = None
     ):
         question = history[-1][0]
-        self._logger.debug(f"on_message question: '{question}' - ttl_generator_state: {ttl_generator_state}")
+        self._logger.debug(f"on_message question: '{question}' - ttv_generator_state: {ttv_generator_state}")
         if type(question) != str:
             yield history, None
             self._logger.debug(f"discarted question {repr(question)}")
             return
 
-        history[-1][1] = ""
-
-        response = None
-
-        def on_final_response(rsp):
-            global response
-            response = rsp
-
-        for a, b in self._generate_response(question, history, on_final_response):
-            yield a, b
-
-        if response is None:
-            response = history[-1][1]
+        response: Optional[str] = None
+        new_msg = False
+        for c, resp in self._generate_response(question):
+            if c == 'partial':
+                if new_msg:
+                    new_msg = False
+                    history.append([None, None])
+                response = resp
+                history[-1][1] = resp
+            elif c == 'final':
+                response = resp
+                history[-1][1] = resp
+            elif c == 'end':
+                new_msg = True
+            elif c == 'complete':
+                response = resp
+                history[-1][1] = resp
+            yield history, None
 
         self._logger.debug(f"final response: '{response}'")
-        if ttl_generator_state == config.GENERATOR_ELEVENLABS:
+
+        if response is None:
+            return history, None  # no response
+
+        if ttv_generator_state == config.GENERATOR_ELEVENLABS:
             self._logger.debug(f"generating elevenlabs audio using voice '{elevenlabs_voice_id}' ...")
             try:
                 audiofile = self._ttl.elevenlabs_generate(response, elevenlabs_voice_id)
-                history.append((None, (audiofile,)))
+                history.append([None, (audiofile,)])
                 self._logger.debug(f"audio generated: '{audiofile}'")
                 yield history, audiofile
             except elevenlabs.RateLimitError as e:
                 self._logger.exception(e)
                 self._logger.info("TTL rate limit reached")
-        elif ttl_generator_state == config.GENERATOR_BARK:
+        elif ttv_generator_state == config.GENERATOR_BARK:
             self._logger.debug(f"generating bark audio using voice '{bark_voice_id}' ...")
             audiofile = self._ttl.bark_generate(response, bark_voice_id)
             history.append((None, (audiofile,)))
@@ -133,3 +167,5 @@ class MiaBot:
             yield history, audiofile
         else:
             self._logger.debug(f"TTL not enabled")
+
+

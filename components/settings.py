@@ -5,10 +5,10 @@ from typing import Tuple, Dict, Optional
 import gradio as gr
 
 import config
-from ttl import TextToVoice
+from utils.ttv import TextToVoice
 
 
-def gui(ttl: TextToVoice, conf: config.Config):
+def gui(ttv: TextToVoice, conf: config.Config):
     # Openai
     with gr.Row():
         openai_temperature_slider = gr.Slider(
@@ -37,34 +37,34 @@ def gui(ttl: TextToVoice, conf: config.Config):
         )
 
 
-    # TTL Generator
+    # ttv Generator
     with gr.Row():
-        ttl_generator_radio = gr.Radio(
+        ttv_generator_radio = gr.Radio(
             choices=[config.GENERATOR_DISABLED, config.GENERATOR_ELEVENLABS, config.GENERATOR_BARK],
-            value=conf.ttl_generator_state.value,
+            value=conf.ttv_generator_state.value,
             type="value",
-            label="TTL Generator"
+            label="ttv Generator"
         )
-        ttl_generator_radio.change(
+        ttv_generator_radio.change(
             lambda value: value,
-            inputs=[ttl_generator_radio],
-            outputs=[conf.ttl_generator_state]
+            inputs=[ttv_generator_radio],
+            outputs=[conf.ttv_generator_state]
         )
 
-    def elevelabs_enabled(ttl_generator: Optional[str] = None) -> bool:
-        if ttl_generator is None:
-            ttl_generator = conf.ttl_generator_state.value
-        return ttl_generator == config.GENERATOR_ELEVENLABS
+    def elevelabs_enabled(ttv_generator: Optional[str] = None) -> bool:
+        if ttv_generator is None:
+            ttv_generator = conf.ttv_generator_state.value
+        return ttv_generator == config.GENERATOR_ELEVENLABS
 
-    def bark_enabled(ttl_generator: Optional[str] = None) -> bool:
-        if ttl_generator is None:
-            ttl_generator = conf.ttl_generator_state.value
-        return ttl_generator == config.GENERATOR_BARK
+    def bark_enabled(ttv_generator: Optional[str] = None) -> bool:
+        if ttv_generator is None:
+            ttv_generator = conf.ttv_generator_state.value
+        return ttv_generator == config.GENERATOR_BARK
 
     # Bark
     with gr.Group(visible=bark_enabled()) as bark_row:
         with gr.Row():
-            bark_voices = ttl.bark_voices()
+            bark_voices = ttv.bark_voices()
             bark_voices_radio = gr.Dropdown(
                 choices=bark_voices,
                 type="value",
@@ -80,7 +80,7 @@ def gui(ttl: TextToVoice, conf: config.Config):
     # ElevenLabs
     with gr.Group(visible=elevelabs_enabled()) as elevenlabs_row:
         with gr.Row():
-            elevenlabs_voices_values = ttl.elevenlabs_voices()
+            elevenlabs_voices_values = ttv.elevenlabs_voices()
             elevenlabs_voices_radio = gr.Dropdown(
                 choices=list(elevenlabs_voices_values.values()),
                 type="value",
@@ -94,7 +94,7 @@ def gui(ttl: TextToVoice, conf: config.Config):
             return next(key for (key, val) in elevenlabs_voices_values.items() if val == value)
 
         def elevenlabs_force_refresh() -> Dict[str, str]:
-            return ttl.elevenlabs_voices(force_fresh=True)
+            return ttv.elevenlabs_voices(force_fresh=True)
 
         elevenlabs_voices_radio.change(
             elevenlabs_voices_radio_change,
@@ -109,7 +109,7 @@ def gui(ttl: TextToVoice, conf: config.Config):
             queue=False
         )
     # test voice
-    with gr.Group(visible=bark_enabled() or elevelabs_enabled()) as ttl_test_row:
+    with gr.Group(visible=bark_enabled() or elevelabs_enabled()) as ttv_test_row:
         with gr.Row():
             bark_test_btn = gr.Button("Test voice")
 
@@ -124,14 +124,14 @@ def gui(ttl: TextToVoice, conf: config.Config):
                     elevenlabs_voice_id = elevenlabs_voices_radio_change(elevenlabs_voice)
                     example_filepath = config.DATA_DIR / "elevenlabs" / f"{elevenlabs_voice_id}.mp3"
                     if not os.path.exists(example_filepath):
-                        filepath = ttl.elevenlabs_generate(
+                        filepath = ttv.elevenlabs_generate(
                             "Ciao. Come va? Sono un'intelligenza artificiale, un sistema avanzato progettato per interagire con gli utenti.",
                             elevenlabs_voice_id
                         )
                         shutil.move(filepath, example_filepath)
                     return example_filepath
                 elif status == config.GENERATOR_BARK:
-                    filepath = ttl.bark_generate(
+                    filepath = ttv.bark_generate(
                         "Ciao. Come va? [laughs] Sono un'intelligenza artificiale, un sistema avanzato progettato per interagire con gli utenti.",
                         bark_voice_id
                     )
@@ -141,44 +141,44 @@ def gui(ttl: TextToVoice, conf: config.Config):
 
             bark_test_btn.click(
                 test_voice,
-                inputs=[ttl_generator_radio, elevenlabs_voices_radio, bark_voices_radio],
+                inputs=[ttv_generator_radio, elevenlabs_voices_radio, bark_voices_radio],
                 outputs=[bark_test_audio],
                 queue=False
             )
 
-    def ttl_generator_radio_change(value: str) -> Tuple[str, Dict, Dict, Dict]:
+    def ttv_generator_radio_change(value: str) -> Tuple[str, Dict, Dict, Dict]:
         return value, \
             gr.Radio.update(visible=elevelabs_enabled(value)), \
             gr.Radio.update(visible=bark_enabled(value)), \
             gr.Group.update(visible=value != config.GENERATOR_DISABLED)
 
-    ttl_generator_radio.change(
-        ttl_generator_radio_change,
-        inputs=[ttl_generator_radio],
-        outputs=[conf.ttl_generator_state, elevenlabs_row, bark_row, ttl_test_row]
+    ttv_generator_radio.change(
+        ttv_generator_radio_change,
+        inputs=[ttv_generator_radio],
+        outputs=[conf.ttv_generator_state, elevenlabs_row, bark_row, ttv_test_row]
     )
 
     def save_config(
+            openai_model_state: str,
             openai_temperature: int,
-            ttl_generator: str,
+            ttv_generator: str,
             elevenlabs_voice_id: str,
-            bark_voice_id: str
+            bark_voice_id: str,
     ):
-        config.save_config(
-            config.Config(
-                openai_temperature=openai_temperature,
-                ttl_generator=ttl_generator,
-                elevenlabs_voice_id=elevenlabs_voice_id,
-                bark_voice_id=bark_voice_id,
-            )
+        conf.update(
+            openai_model=openai_model_state,
+            openai_temperature=openai_temperature,
+            ttv_generator=ttv_generator,
+            elevenlabs_voice_id=elevenlabs_voice_id,
+            bark_voice_id=bark_voice_id,
         )
 
     with gr.Row():
         save_config_btn = gr.Button("💾")
         save_config_btn.click(
             save_config,
-            inputs=[conf.openai_temperature_state, conf.ttl_generator_state, conf.elevenlabs_voice_id_state,
-                    conf.bark_voice_id_state],
+            inputs=[conf.openai_model_state, conf.openai_temperature_state, conf.ttv_generator_state,
+                    conf.elevenlabs_voice_id_state, conf.bark_voice_id_state],
             outputs=None,
             queue=False
         )

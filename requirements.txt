@@ -25,3 +25,9 @@ omegaconf
 # sdxl refiner
 #invisible_watermark
 safetensors
+
+# remove background
+rembg[gpu]
+
+# watermark
+invisible-watermark

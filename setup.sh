@@ -5,11 +5,11 @@ PYTHON_VERSION=3.10
 cd "$(dirname "$0")"
 
 if ! [ -d .venv-${PYTHON_VERSION} ] ; then
-  python${PYTHON_VERSION} -m venv .venv-${PYTHON_VERSION}
+  python${PYTHON_VERSION} -m venv .venv
 fi
 
 # shellcheck source=.venv-3.10/bin/activate
-source ".venv-${PYTHON_VERSION}/bin/activate"
+source ".venv/bin/activate"
 
 pip install -r requirements.txt
 

@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 from abc import ABC
 from pathlib import Path
-from typing import Optional, Iterable, Iterator
+from typing import Optional, Iterable, Iterator, Any
 import openai
 import gradio as gr
+from gradio.components import IOComponent
+from gradio_client.serializing import SimpleSerializable
 
 __all__ = [
     "DATA_DIR",
@@ -15,7 +18,6 @@ __all__ = [
     "GENERATOR_BARK",
     "GENERATOR_DISABLED",
     "Config",
-    "save_config",
     "load_config",
 ]
 
@@ -32,34 +34,85 @@ ELEVENLABS_DEFAULT_VOICE = os.environ.get("ELEVENLABS_DEFAULT_VOICE", '21m00Tcm4
 BARK_DEFAULT_VOICE = os.environ.get("BARK_DEFAULT_VOICE", "v2/it_speaker_9")
 
 
+class State(gr.State, ABC):
+    def __init__(self, name, default_value=None):
+        self.stateful = True
+        self._name = name
+        self._default_value = default_value
+        self._config_file = str(DATA_DIR / "config.json")
+        super().__init__(self._get_value)
 
-class Config(Iterable[gr.State], ABC):
+    @property
+    def value(self):
+        return self._get_value()
+
+    def _get_value(self):
+        if os.path.exists(self._config_file):
+            with open(self._config_file, "r") as f:
+                config = json.load(f)
+                if self._name in config:
+                    val = config[self._name]
+                    logging.info(f"{self._name}: {val}")
+                    return val
+        return self._default_value
+
+    @value.setter
+    def value(self, value):
+        if os.path.exists(self._config_file):
+            with open(self._config_file, "r") as f:
+                config = json.load(f)
+        else:
+            config = {}
+        config[self._name] = value
+        with open(self._config_file, "w") as f:
+            json.dump(config, f)
+
+    def preprocess(self, x: Any) -> Any:
+        return x
+
+    def postprocess(self, y):
+        return y
+
+    def get_block_name(self) -> str:
+        return 'state'
+
+
+class Config(gr.State, Iterable[gr.State], ABC):
     openai_model_state: gr.State
-    ttl_generator_state: gr.State
+    ttv_generator_state: gr.State
     elevenlabs_voice_id_state: gr.State
     bark_voice_id_state: gr.State
     openai_temperature_state: gr.State
 
-    def __init__(
+    def __init__(self):
+        self.openai_model_state = State("openai_model", OPENAI_MODEL)
+        self.openai_temperature_state = State("openai_temperature", OPENAI_TEMPERATURE)
+        self.ttv_generator_state = State("ttv_generator", GENERATOR_DISABLED)
+        self.elevenlabs_voice_id_state = State("elevenlabs_voice_id", ELEVENLABS_DEFAULT_VOICE)
+        self.bark_voice_id_state = State("bark_voice_id", BARK_DEFAULT_VOICE)
+        openai.api_key = OPENAI_API_KEY
+        gr.components.IOComponent.__init__(self, value=self.__dict__())
+
+    def update(
             self,
             openai_model: Optional[str] = OPENAI_MODEL,
             openai_temperature: Optional[float] = OPENAI_TEMPERATURE,
-            ttl_generator: Optional[str] = GENERATOR_DISABLED,
+            ttv_generator: Optional[str] = GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = ELEVENLABS_DEFAULT_VOICE,
             bark_voice_id: Optional[str] = BARK_DEFAULT_VOICE
     ):
-        self.openai_model_state = gr.State(openai_model)
-        self.openai_temperature_state = gr.State(openai_temperature)
-        self.ttl_generator_state = gr.State(ttl_generator)
-        self.elevenlabs_voice_id_state = gr.State(elevenlabs_voice_id)
-        self.bark_voice_id_state = gr.State(bark_voice_id)
-        openai.api_key = OPENAI_API_KEY
+        self.openai_model_state.value = openai_model
+        self.ttv_generator_state.value = ttv_generator
+        self.openai_temperature_state.value = openai_temperature
+        self.ttv_generator_state.value = ttv_generator
+        self.elevenlabs_voice_id_state.value = elevenlabs_voice_id
+        self.bark_voice_id_state.value = bark_voice_id
 
     def __list__(self) -> Iterable[gr.State]:
         return [
             self.openai_model_state,
             self.openai_temperature_state,
-            self.ttl_generator_state,
+            self.ttv_generator_state,
             self.elevenlabs_voice_id_state,
             self.bark_voice_id_state
         ]
@@ -67,30 +120,18 @@ class Config(Iterable[gr.State], ABC):
     def __iter__(self) -> Iterator[gr.State]:
         return iter(self.__list__())
 
+    def __dict__(self):
+        return {
+            "openai_model": self.openai_model_state.value,
+            "openai_temperature": self.openai_temperature_state.value,
+            "ttv_generator": self.ttv_generator_state.value,
+            "elevenlabs_voice_id": self.elevenlabs_voice_id_state.value,
+            "bark_voice_id": self.bark_voice_id_state.value,
+        }
 
-def save_config(conf: Config):
-    with open(str(DATA_DIR / "config.json"), 'w') as fd:
-        json.dump({
-            "openai_model": conf.openai_model_state.value,
-            "openai_temperature": conf.openai_temperature_state.value,
-            "ttl_generator": conf.ttl_generator_state.value,
-            "elevenlabs_voice_id": conf.elevenlabs_voice_id_state.value,
-            "bark_voice_id": conf.bark_voice_id_state.value,
-        }, fd)
+    def get_block_name(self) -> str:
+        return 'state'
 
 
 def load_config() -> Config:
-    config_file = str(DATA_DIR / "config.json")
-    default_config = Config()
-    if not os.path.exists(config_file):
-        return default_config
-    else:
-        with open(config_file, 'r') as fd:
-            data = json.load(fd)
-            return Config(
-                openai_model=data.get("openai_model", default_config.openai_model_state.value),
-                openai_temperature=float(data.get("openai_temperature", default_config.openai_temperature_state.value)),
-                ttl_generator=data.get("ttl_generator", default_config.ttl_generator_state.value),
-                elevenlabs_voice_id=data.get("elevenlabs_voice_id", default_config.elevenlabs_voice_id_state.value),
-                bark_voice_id=data.get("bark_voice_id", default_config.bark_voice_id_state.value),
-            )
+    return Config()

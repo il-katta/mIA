@@ -4,7 +4,7 @@ import logging
 import torch
 from transformers import pipeline
 from transformers.pipelines.text_generation import TextGenerationPipeline
-from typing import cast, Optional
+from typing import Optional
 
 
 class PromptGenerator(object):
@@ -26,7 +26,7 @@ class PromptGenerator(object):
 
     def load_model(self):
         self._logger.info(f"Loading model {self.model_name}")
-        self.pipe = cast(pipeline("text-generation", model=self.model_name), TextGenerationPipeline)
+        self.pipe = pipeline("text-generation", model=self.model_name)
 
     def generate_prompt(self, incipit: str, max_length: int = 250) -> str:
         self._logger.info(f"Generating prompt for {self.model_name} with incipit {incipit}")

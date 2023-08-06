@@ -4,7 +4,12 @@ import config
 from bot import MiaBot
 
 
-def gui(bot: MiaBot, conf: config.Config):
+def is_available():
+    return True
+
+
+def gui(bot: 'MiaBot', conf: config.Config):
+
     chatbot = gr.Chatbot([], elem_id="chatbot")
     audio_out = gr.Audio(
         container=False,
@@ -40,7 +45,7 @@ def gui(bot: MiaBot, conf: config.Config):
         bot.on_message,
         inputs=[
             chatbot,
-            conf.ttl_generator_state,
+            conf.ttv_generator_state,
             conf.elevenlabs_voice_id_state,
             conf.bark_voice_id_state
         ],
@@ -60,7 +65,7 @@ def gui(bot: MiaBot, conf: config.Config):
         bot.on_message,
         inputs=[
             chatbot,
-            conf.ttl_generator_state,
+            conf.ttv_generator_state,
             conf.elevenlabs_voice_id_state,
             conf.bark_voice_id_state
         ],
@@ -79,7 +84,7 @@ def gui(bot: MiaBot, conf: config.Config):
         queue=False
     ).then(
         bot.on_message,
-        inputs=[chatbot, conf.ttl_generator_state],
+        inputs=[chatbot, conf.ttv_generator_state],
         outputs=[chatbot, audio_out]
     )
     clear_button.click(
