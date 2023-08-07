@@ -1,8 +1,8 @@
 import importlib.util
+import gc
 
 
 def cuda_garbage_collection():
-    import gc
     import torch
     gc.collect()
     if torch.cuda.is_available():
