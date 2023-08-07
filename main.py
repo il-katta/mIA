@@ -8,8 +8,8 @@ import os
 import gradio as gr
 
 from bot import MiaBot
-from components import settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark
-from utils.ttv import TextToVoice
+from components import settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark, generate_music
+from utils.tts import TextToSpeech
 import config
 
 logging.basicConfig(
@@ -25,7 +25,7 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
 with gr.Blocks() as demo:
     conf = config.load_config()
     bot = MiaBot(conf)
-    ttv = TextToVoice(config.ELEVENLABS_DEFAULT_APIKEY)
+    tts = TextToSpeech(config.ELEVENLABS_DEFAULT_APIKEY)
 
     hello_text = gr.Label("Hello there! I'm mIA, your personal assistant. How can I help you?")
 
@@ -49,8 +49,12 @@ with gr.Blocks() as demo:
         with gr.Tab("Invisible Watermark"):
             invisible_watermark.gui()
 
+    if generate_music.is_available():
+        with gr.Tab("Music Generator"):
+            generate_music.gui()
+
     with gr.Tab("Settings"):
-        settings.gui(ttv=ttv, conf=conf)
+        settings.gui(tts=tts, conf=conf)
 
 demo.queue(concurrency_count=2)
 

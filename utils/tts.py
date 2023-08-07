@@ -11,6 +11,7 @@ import utils
 try:
     from bark import SAMPLE_RATE
     from bark.generation import CUR_PATH
+
     bark_available = (
             utils.package_exists("transformers") and
             utils.package_exists("bitsandbytes") and
@@ -23,16 +24,14 @@ except ImportError:
     bark_available = False
     CUR_PATH = None
 
-
-
 import config
 
 
-class TextToVoice:
+class TextToSpeech:
 
     def __init__(self, elevenlabs_apikey: Optional[str] = None):
-        self._logger = logging.getLogger("TextToVoice")
-        self._logger.debug("TextToVoice initialized")
+        self._logger = logging.getLogger("TextToSpeech")
+        self._logger.debug("TextToSpeech initialized")
         self._elevenlabs_apikey = elevenlabs_apikey
         if elevenlabs_apikey:
             elevenlabs.set_api_key(self._elevenlabs_apikey)

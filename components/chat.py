@@ -45,7 +45,7 @@ def gui(bot: 'MiaBot', conf: config.Config):
         bot.on_message,
         inputs=[
             chatbot,
-            conf.ttv_generator_state,
+            conf.tts_generator_state,
             conf.elevenlabs_voice_id_state,
             conf.bark_voice_id_state
         ],
@@ -65,7 +65,7 @@ def gui(bot: 'MiaBot', conf: config.Config):
         bot.on_message,
         inputs=[
             chatbot,
-            conf.ttv_generator_state,
+            conf.tts_generator_state,
             conf.elevenlabs_voice_id_state,
             conf.bark_voice_id_state
         ],
@@ -84,7 +84,7 @@ def gui(bot: 'MiaBot', conf: config.Config):
         queue=False
     ).then(
         bot.on_message,
-        inputs=[chatbot, conf.ttv_generator_state],
+        inputs=[chatbot, conf.tts_generator_state],
         outputs=[chatbot, audio_out]
     )
     clear_button.click(

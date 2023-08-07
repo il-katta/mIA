@@ -1,6 +1,6 @@
 -r requirements-base.txt
 
-# TTV bark
+# TTS bark
 -r requirements-bark.txt
 
 # document loader

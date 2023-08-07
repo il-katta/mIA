@@ -15,7 +15,7 @@ from langchain.agents import Tool, initialize_agent, AgentType, load_tools
 
 import config
 from callbackhandlers import OnStream, StreamMessage
-from utils.ttv import TextToVoice
+from utils.tts import TextToSpeech
 
 __all__ = ["MiaBot"]
 
@@ -47,7 +47,7 @@ class MiaBot:
 
         self._logger = logging.getLogger("MiaBot")
         self._logger.debug("MiaBot initialized")
-        self._ttl = TextToVoice(os.getenv("ELEVENLABS_API_KEY"))
+        self._ttl = TextToSpeech(os.getenv("ELEVENLABS_API_KEY"))
 
     def on_file_pre(self, history, file):
         self._logger.debug(f"on_file_pre file: '{file}'")
@@ -114,12 +114,12 @@ class MiaBot:
     def on_message(
             self,
             history,
-            ttv_generator_state: str = config.GENERATOR_DISABLED,
+            tts_generator_state: str = config.GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = None,
             bark_voice_id: Optional[str] = None
     ):
         question = history[-1][0]
-        self._logger.debug(f"on_message question: '{question}' - ttv_generator_state: {ttv_generator_state}")
+        self._logger.debug(f"on_message question: '{question}' - tts_generator_state: {tts_generator_state}")
         if type(question) != str:
             yield history, None
             self._logger.debug(f"discarted question {repr(question)}")
@@ -149,7 +149,7 @@ class MiaBot:
         if response is None:
             return history, None  # no response
 
-        if ttv_generator_state == config.GENERATOR_ELEVENLABS:
+        if tts_generator_state == config.GENERATOR_ELEVENLABS:
             self._logger.debug(f"generating elevenlabs audio using voice '{elevenlabs_voice_id}' ...")
             try:
                 audiofile = self._ttl.elevenlabs_generate(response, elevenlabs_voice_id)
@@ -159,7 +159,7 @@ class MiaBot:
             except elevenlabs.RateLimitError as e:
                 self._logger.exception(e)
                 self._logger.info("TTL rate limit reached")
-        elif ttv_generator_state == config.GENERATOR_BARK:
+        elif tts_generator_state == config.GENERATOR_BARK:
             self._logger.debug(f"generating bark audio using voice '{bark_voice_id}' ...")
             audiofile = self._ttl.bark_generate(response, bark_voice_id)
             history.append((None, (audiofile,)))

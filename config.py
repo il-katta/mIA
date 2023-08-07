@@ -79,7 +79,7 @@ class State(gr.State, ABC):
 
 class Config(gr.State, Iterable[gr.State], ABC):
     openai_model_state: gr.State
-    ttv_generator_state: gr.State
+    tts_generator_state: gr.State
     elevenlabs_voice_id_state: gr.State
     bark_voice_id_state: gr.State
     openai_temperature_state: gr.State
@@ -87,7 +87,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
     def __init__(self):
         self.openai_model_state = State("openai_model", OPENAI_MODEL)
         self.openai_temperature_state = State("openai_temperature", OPENAI_TEMPERATURE)
-        self.ttv_generator_state = State("ttv_generator", GENERATOR_DISABLED)
+        self.tts_generator_state = State("tts_generator", GENERATOR_DISABLED)
         self.elevenlabs_voice_id_state = State("elevenlabs_voice_id", ELEVENLABS_DEFAULT_VOICE)
         self.bark_voice_id_state = State("bark_voice_id", BARK_DEFAULT_VOICE)
         openai.api_key = OPENAI_API_KEY
@@ -97,14 +97,14 @@ class Config(gr.State, Iterable[gr.State], ABC):
             self,
             openai_model: Optional[str] = OPENAI_MODEL,
             openai_temperature: Optional[float] = OPENAI_TEMPERATURE,
-            ttv_generator: Optional[str] = GENERATOR_DISABLED,
+            tts_generator: Optional[str] = GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = ELEVENLABS_DEFAULT_VOICE,
             bark_voice_id: Optional[str] = BARK_DEFAULT_VOICE
     ):
         self.openai_model_state.value = openai_model
-        self.ttv_generator_state.value = ttv_generator
+        self.tts_generator_state.value = tts_generator
         self.openai_temperature_state.value = openai_temperature
-        self.ttv_generator_state.value = ttv_generator
+        self.tts_generator_state.value = tts_generator
         self.elevenlabs_voice_id_state.value = elevenlabs_voice_id
         self.bark_voice_id_state.value = bark_voice_id
 
@@ -112,7 +112,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
         return [
             self.openai_model_state,
             self.openai_temperature_state,
-            self.ttv_generator_state,
+            self.tts_generator_state,
             self.elevenlabs_voice_id_state,
             self.bark_voice_id_state
         ]
@@ -124,7 +124,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
         return {
             "openai_model": self.openai_model_state.value,
             "openai_temperature": self.openai_temperature_state.value,
-            "ttv_generator": self.ttv_generator_state.value,
+            "tts_generator": self.tts_generator_state.value,
             "elevenlabs_voice_id": self.elevenlabs_voice_id_state.value,
             "bark_voice_id": self.bark_voice_id_state.value,
         }
