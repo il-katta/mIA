@@ -1,36 +1,55 @@
 from tempfile import NamedTemporaryFile
+from typing import Optional
 
-from audiocraft.models import musicgen
+from audiocraft.models import musicgen, audiogen
 from audiocraft.data.audio import audio_write
 from utils import cuda_garbage_collection
+
+
+def torch_optimizer(func):
+    import torch
+    def wrapped(*args, **kwargs):
+        with torch.no_grad():
+            with torch.autocast("cuda"):
+                return func(*args, **kwargs)
+
+    return wrapped
 
 
 class MusicGenerator(object):
     model = None
     model_name = None
 
-    def __init__(self, model_name="facebook/musicgen-large"):
+    def __init__(self, model_name="facebook/musicgen-large", music: bool = True):
         self.model = None
-        self.model_name = None
+        self.model_name = model_name
+        self.music = music
 
-    def load_model(self, model_name=None):
+    def load_model(self, model_name: Optional[str] = None, music: Optional[bool] = None):
         if model_name is not None:
             self.model_name = model_name
+        if music is not None:
+            self.music = music
         if not self.model or self.model.name != self.model_name:
             del self.model
             cuda_garbage_collection()
-            self.model = musicgen.MusicGen.get_pretrained(model_name)
+            if self.music:
+                self.model = musicgen.MusicGen.get_pretrained(model_name)
+            else:
+                self.model = audiogen.AudioGen.get_pretrained(model_name)
 
+    @torch_optimizer
     def generate_music(
             self,
             prompt: str,
+            model_name: Optional[str] = None,
             use_sampling: bool = True, top_k: int = 250,
             top_p: float = 0.0, temperature: float = 1.0,
             duration: float = 30.0, cfg_coef: float = 3.0,
-            two_step_cfg: bool = False, extend_stride: float = 18
+            two_step_cfg: bool = False, extend_stride: float = 18,
+            music: Optional[bool] = None
     ) -> str:
-        if self.model is None:
-            self.load_model()
+        self.load_model(model_name, music)
         self.model.set_generation_params(
             duration=duration,
             use_sampling=use_sampling,
