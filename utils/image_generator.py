@@ -3,11 +3,11 @@ from datetime import datetime
 import logging
 import random
 import sys
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from PIL.PngImagePlugin import PngInfo
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
-from transformers import BitsAndBytesConfig
+from transformers import BitsAndBytesConfig, CLIPTextModel, CLIPTokenizer
 from diffusers.utils import get_class_from_dynamic_module
 
 from diffusers import StableDiffusionPipeline, StableDiffusionXLPipeline, DDIMScheduler, EulerDiscreteScheduler, \
@@ -24,7 +24,8 @@ from utils import cuda_garbage_collection
 
 DEFAULT_NEGATIVE_PROMPT = "portrait, 3d, low quality, worst quality, glitch, glitch art, glitch effect, deformed, bad anatomy, bad perspective, bad composition, bad lighting, bad shadin"
 
-#TODO: look at stable-diffusion-webui/modules/txt2img.py
+
+# TODO: look at stable-diffusion-webui/modules/txt2img.py
 # see also https://github.com/vicgalle/stable-diffusion-aesthetic-gradients
 # and https://github.com/CompVis/stable-diffusion
 
@@ -81,12 +82,22 @@ ModelNames = Literal["sd_xl_base", "sd_xl_refiner", "photon", "rundiffusionFX", 
 # https://huggingface.co/docs/diffusers/v0.19.3/en/api/pipelines/stable_diffusion/overview
 # https://huggingface.co/docs/diffusers/v0.19.3/en/api/pipelines/stable_diffusion/text2img
 
+def torch_optimizer(func):
+    def wrapped(*args, **kwargs):
+        with torch.no_grad():
+            with torch.autocast("cuda"):
+                return func(*args, **kwargs)
+
+    return wrapped
+
 
 class ImageGenerator(object):
     model_name: ModelNames
     model: dict
     pipe: StableDiffusionXLPipeline | StableDiffusionPipeline | StableDiffusionXLImg2ImgPipeline = None
     _default_scheduler: Optional[SchedulerMixin] = None
+    _default_tokenizer = None
+    _default_text_encoder = None
     device: int
 
     def __init__(
@@ -95,6 +106,9 @@ class ImageGenerator(object):
             load_mode: LoadMode = LoadMode.GPU,
             nsfw_check: bool = False,
             use_lpw: bool = True,
+            clip_model: Union[str, None] = "openai/clip-vit-large-patch14-336",
+            clip_tokenizer: Union[str, None] = "openai/clip-vit-large-patch14-336",
+
             device: int = 0
     ):
         self._logger = logging.getLogger(__name__)
@@ -104,7 +118,10 @@ class ImageGenerator(object):
         self.load_mode = load_mode
         self.nsfw_check = nsfw_check
         self.use_lpw = use_lpw
+        self.clip_model = clip_model
+        self.clip_tokenizer = clip_tokenizer
 
+    @torch_optimizer
     def load_model(self):
         model_family = self.model["model_family"]
         safetensor_path = self.model["path"]
@@ -120,6 +137,9 @@ class ImageGenerator(object):
         if model_family == ModelFamily.SD_XL_REFINER:
             image_size = 1024
 
+        variant = "bf16"
+        # variant="fp16"
+
         if self.load_mode == LoadMode.LOW_VRAM or self.load_mode == LoadMode.GPU:
             self.pipe = StableDiffusionPipeline.from_single_file(
                 safetensor_path,
@@ -128,8 +148,7 @@ class ImageGenerator(object):
                 use_safetensors=True,
                 safety_checker=StableDiffusionSafetyChecker if self.nsfw_check else None,
                 requires_safety_checker=self.nsfw_check,
-                variant="bf16"
-                # variant="fp16"
+                variant=variant
             ).to(f"cuda:{self.device}")
 
             if self.load_mode == LoadMode.LOW_VRAM:
@@ -155,10 +174,20 @@ class ImageGenerator(object):
         else:
             raise ValueError(f"Invalid load mode {self.load_mode}")
 
+        self._default_tokenizer = self.pipe.tokenizer
+        self._default_text_encoder = self.pipe.text_encoder
+
+        if self.clip_model is not None:
+            self.pipe.text_encoder = CLIPTextModel.from_pretrained(self.clip_model).to(f"cuda:{self.device}")
+
+        if self.clip_tokenizer is not None:
+            self.pipe.tokenizer = CLIPTokenizer.from_pretrained(self.clip_tokenizer)
+
         if self.use_lpw:
-            LPWStableDiffusionPipeline = get_class_from_dynamic_module("lpw_stable_diffusion",
-                                                                       module_file="lpw_stable_diffusion.py")
-            self.pipe = LPWStableDiffusionPipeline(**self.pipe.components)
+            self.pipe = get_class_from_dynamic_module(
+                "lpw_stable_diffusion",
+                module_file="lpw_stable_diffusion.py"
+            )(**self.pipe.components)
 
         self.pipe.unet.to(memory_format=torch.channels_last)
         if not self.use_lpw:  # compilation is not compatible with lpw
@@ -173,6 +202,7 @@ class ImageGenerator(object):
 
         self._default_scheduler = self.pipe.scheduler
 
+    @torch_optimizer
     def generate_image(
             self,
             subject: str,
