@@ -9,7 +9,7 @@
 * image background removal using [rembg](https://github.com/danielgatis/rembg)
 * image upscaler using `stabilityai/stable-diffusion-x4-upscaler` and `stabilityai/sd-x2-latent-upscaler` models
 * read and write invisible watermarking of a image using [invisible-watermark](https://github.com/ShieldMnt/invisible-watermark) 
-
+* music generation using https://github.com/facebookresearch/audiocraft 
 
 ## Installation
 
