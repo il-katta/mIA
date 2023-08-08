@@ -1,1 +1,2 @@
 rembg[gpu]
+numpy==1.24.4  # to not upgrade! rembg needs this version

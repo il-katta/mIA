@@ -117,13 +117,13 @@ def gui():
 
     with gr.Tab(label="Watermark test"):
         with gr.Row():
-            length_number = gr.Number(label="Watermark length ( 136 for sd ?)", min_value=0, value=32, step=1, precision=0)
+            length_number = gr.Number(label="Watermark length ( 136 for sd ?)", minimum=0, value=32, precision=0)
         with gr.Row():
             test_button = gr.Button("Test")
             search_button = gr.Button("Search")
 
         with gr.Row():
-            text_out = gr.Textbox(label="Output Text", lines=10, placeholder="Output Text", readonly=True)
+            text_out = gr.Textbox(label="Output Text", lines=10, placeholder="Output Text")
 
     add_watermark_button.click(add_watermark, inputs=[image_in, text_in, embedding_method_choose, wm_type_choose], outputs=[image_out])
 

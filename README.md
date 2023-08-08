@@ -59,3 +59,6 @@ dev mode ( automatic reload on code change )
 * migliorare e documentare le api rest create automaticamente da gradio 
 * provare https://github.com/nagadomi/nunif per upscaling delle immagini
 * image colorizer using https://github.com/richzhang/colorization ( or other opensource project ?? )
+* Zero-Shot Object Detection with Grounding DINO
+* viper gpt https://github.com/cvlab-columbia/viper
+* fine tuning di facebook/audiogen-medium con dati da https://freesound.org

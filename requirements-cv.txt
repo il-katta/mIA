@@ -1,0 +1,2 @@
+torch
+#git+https://github.com/IDEA-Research/GroundingDINO.git#egg=groundingdino

@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+.venv/
+venv/
+.venv-*/
+
+.ipynb_checkpoints/
+
+.idea/
+.vscode/
+
+.env
+
+voices.json
+examples/
+data/

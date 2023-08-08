@@ -17,9 +17,8 @@ def gui():
     alpha_matting_checkbox = gr.Checkbox(label="Alpha Matting", value=False)
     alpha_matting_foreground_threshold = gr.Slider(label="Foreground Threshold", minimum=0, maximum=255, step=1,
                                                    value=240)
-    alpha_matting_background_threshold = gr.Number(label="Background Threshold", minimum=0, maximum=255, step=1,
-                                                   value=10)
-    alpha_matting_erode_size = gr.Number(label="Erode Size", value=10, step=1, precision=0)
+    alpha_matting_background_threshold = gr.Number(label="Background Threshold", minimum=0, maximum=255, value=10)
+    alpha_matting_erode_size = gr.Number(label="Erode Size", value=10, precision=0)
     only_mask_checkbox = gr.Checkbox(label="Only Mask", value=False)
     post_process_mask_checkbox = gr.Checkbox(label="Post Process Mask", value=False)
 

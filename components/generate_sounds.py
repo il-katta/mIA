@@ -9,9 +9,9 @@ def is_available():
 
 def gui():
     from utils.music_generator import MusicGenerator
-    music_generator = MusicGenerator(music=True)
+    music_generator = MusicGenerator(music=False)
 
-    def generate_music(prompt, model_name, duration, top_k, top_p, temperature, cfg_coef):
+    def generate_sound(prompt, model_name, duration, top_k, top_p, temperature, cfg_coef, extend_stride):
         return music_generator.generate_music(
             prompt,
             model_name=model_name,
@@ -19,22 +19,24 @@ def gui():
             top_k=top_k,
             top_p=top_p,
             temperature=temperature,
-            cfg_coef=cfg_coef
+            cfg_coef=cfg_coef,
+            extend_stride=extend_stride,
+            music=False,
         )
 
     with gr.Row():
         prompt_text = gr.Text(
             label="Prompt",
-            placeholder="For example: '90s rock song with electric guitar and heavy drums' or 'lofi slow bpm electro chill with organic samples'",
+            placeholder="For example: 'dog barking' or 'sirene of an emergency vehicle'",
             interactive=True
         )
 
     with gr.Row():
         model_radio = gr.Radio(
             [
-                "facebook/musicgen-melody", "facebook/musicgen-medium", "facebook/musicgen-small", "facebook/musicgen-large"
+                "facebook/audiogen-medium",
              ],
-            label="Model", value="facebook/musicgen-large", interactive=True
+            label="Model", value="facebook/audiogen-medium", interactive=True
         )
     with gr.Row():
         duration_slider = gr.Slider(minimum=1, maximum=120, value=10, label="Duration", interactive=True)
@@ -43,10 +45,11 @@ def gui():
         topp_number = gr.Number(label="Top-p", value=0, interactive=True, precision=0)
         temperature_number = gr.Number(label="Temperature", value=1.0, interactive=True)
         cfg_coef_number = gr.Number(label="Classifier Free Guidance", value=3.0, interactive=True)
+        extend_stride_number = gr.Number(label="Extend stride", value=2.0, minimum=0, maximum=9, interactive=True)
     with gr.Row():
         submit_button = gr.Button("Generate")
     with gr.Row():
-        audio_output = gr.Audio(label="Generated Music", type='filepath', autoplay=True)
+        audio_output = gr.Audio(label="Generated sound", type='filepath', autoplay=True)
 
     model_radio.change(
         music_generator.load_model,
@@ -55,9 +58,9 @@ def gui():
     )
 
     submit_button.click(
-        generate_music,
+        generate_sound,
         inputs=[
-            prompt_text, model_radio, duration_slider, topk_number, topp_number, temperature_number, cfg_coef_number
+            prompt_text, model_radio, duration_slider, topk_number, topp_number, temperature_number, cfg_coef_number, extend_stride_number
         ],
         outputs=[audio_output]
     )

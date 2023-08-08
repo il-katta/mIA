@@ -8,7 +8,10 @@ import os
 import gradio as gr
 
 from bot import MiaBot
-from components import settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark, generate_music
+from components import (
+    settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
+    generate_music, generate_sounds, safetensors_helper, system_info
+)
 from utils.tts import TextToSpeech
 import config
 
@@ -28,6 +31,9 @@ with gr.Blocks() as demo:
     tts = TextToSpeech(config.ELEVENLABS_DEFAULT_APIKEY)
 
     hello_text = gr.Label("Hello there! I'm mIA, your personal assistant. How can I help you?")
+
+    if system_info.is_available():
+        system_info.gui()
 
     if chat.is_available():
         with gr.Tab("Chat"):
@@ -52,6 +58,14 @@ with gr.Blocks() as demo:
     if generate_music.is_available():
         with gr.Tab("Music Generator"):
             generate_music.gui()
+
+    if generate_sounds.is_available():
+        with gr.Tab("Sound Generator"):
+            generate_sounds.gui()
+
+    if safetensors_helper.is_available():
+        with gr.Tab("Safetensors Helper"):
+            safetensors_helper.gui()
 
     with gr.Tab("Settings"):
         settings.gui(tts=tts, conf=conf)
