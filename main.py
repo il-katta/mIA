@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 
+from utils.system_stats import SystemStats
+
 load_dotenv()
 
 import logging
@@ -16,7 +18,7 @@ from utils.tts import TextToSpeech
 import config
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s : %(message)s",
     datefmt="%H:%M:%S",
     handlers=[logging.StreamHandler()]
@@ -27,48 +29,46 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
 
 with gr.Blocks() as demo:
     conf = config.load_config()
-    bot = MiaBot(conf)
-    tts = TextToSpeech(config.ELEVENLABS_DEFAULT_APIKEY)
-
-    hello_text = gr.Label("Hello there! I'm mIA, your personal assistant. How can I help you?")
+    sysstats: SystemStats = SystemStats()
 
     if system_info.is_available():
-        system_info.gui()
+        with gr.Accordion("System Info"):
+            system_info.gui(sysstats=sysstats)
 
     if chat.is_available():
         with gr.Tab("Chat"):
-            chat.gui(bot=bot, conf=conf)
+            chat.gui(conf=conf, sysstats=sysstats)
 
     if music_images_generator.is_available():
         with gr.Tab("Music Images Generator"):
-            music_images_generator.gui(bot=bot, conf=conf)
+            music_images_generator.gui(sysstats=sysstats)
 
     if remove_backgroud.is_available():
         with gr.Tab("Image background remover"):
-            remove_backgroud.gui()
+            remove_backgroud.gui(sysstats=sysstats)
 
     if image_upscale.is_available():
         with gr.Tab("Image upscaler"):
-            image_upscale.gui()
+            image_upscale.gui(sysstats=sysstats)
 
     if invisible_watermark.is_available():
         with gr.Tab("Invisible Watermark"):
-            invisible_watermark.gui()
+            invisible_watermark.gui(sysstats=sysstats)
 
     if generate_music.is_available():
         with gr.Tab("Music Generator"):
-            generate_music.gui()
+            generate_music.gui(sysstats=sysstats)
 
     if generate_sounds.is_available():
         with gr.Tab("Sound Generator"):
-            generate_sounds.gui()
+            generate_sounds.gui(sysstats=sysstats)
 
     if safetensors_helper.is_available():
         with gr.Tab("Safetensors Helper"):
-            safetensors_helper.gui()
+            safetensors_helper.gui(sysstats=sysstats)
 
     with gr.Tab("Settings"):
-        settings.gui(tts=tts, conf=conf)
+        settings.gui(conf=conf, sysstats=sysstats)
 
 demo.queue(concurrency_count=2)
 

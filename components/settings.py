@@ -5,10 +5,14 @@ from typing import Tuple, Dict, Optional
 import gradio as gr
 
 import config
+from utils.system_stats import SystemStats
 from utils.tts import TextToSpeech
 
 
-def gui(tts: TextToSpeech, conf: config.Config):
+def gui(conf: config.Config, sysstats: SystemStats):
+    tts = TextToSpeech(config.ELEVENLABS_DEFAULT_APIKEY)
+    sysstats.register_disposable_model(tts)
+
     # Openai
     with gr.Row():
         openai_temperature_slider = gr.Slider(
@@ -35,7 +39,6 @@ def gui(tts: TextToSpeech, conf: config.Config):
             inputs=[openai_model_input],
             outputs=[conf.openai_model_state]
         )
-
 
     # TTS Generator
     with gr.Row():

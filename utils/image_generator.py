@@ -21,6 +21,7 @@ import gc
 
 import config
 from utils import cuda_garbage_collection
+from utils._interfaces import DisposableModel
 
 DEFAULT_NEGATIVE_PROMPT = "portrait, 3d, low quality, worst quality, glitch, glitch art, glitch effect, deformed, bad anatomy, bad perspective, bad composition, bad lighting, bad shadin"
 
@@ -91,7 +92,7 @@ def torch_optimizer(func):
     return wrapped
 
 
-class ImageGenerator(object):
+class ImageGenerator(DisposableModel):
     model_name: ModelNames
     model: dict
     pipe: StableDiffusionXLPipeline | StableDiffusionPipeline | StableDiffusionXLImg2ImgPipeline = None
@@ -309,12 +310,28 @@ class ImageGenerator(object):
                 self.switch_model(original_model)
 
     def unload_model(self):
-        self._logger.debug(f"Unloading model {self.model_name}")
+        self._logger.info(f"Unloading model {self.model_name}")
+
+        if self._default_scheduler is not None:
+            del self._default_scheduler
+            self._default_scheduler = None
+        if self._default_tokenizer is not None:
+            del self._default_tokenizer
+            self._default_tokenizer = None
+        if self._default_text_encoder is not None:
+            del self._default_text_encoder
+            self._default_text_encoder = None
+
         if self.pipe is not None:
             if hasattr(self.pipe, "unet"):
                 del self.pipe.unet
+            if hasattr(self.pipe, "tokenizer"):
+                del self.pipe.tokenizer
+            if hasattr(self.pipe, "text_encoder"):
+                del self.pipe.text_encoder
+            if hasattr(self.pipe, "scheduler"):
+                del self.pipe.scheduler
             del self.pipe
-
         gc.collect()
         self.gc()
 
@@ -328,6 +345,3 @@ class ImageGenerator(object):
     @staticmethod
     def gc():
         cuda_garbage_collection()
-
-    def __del__(self):
-        self.unload_model()

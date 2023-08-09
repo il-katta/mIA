@@ -4,6 +4,7 @@ from typing import Optional
 from audiocraft.models import musicgen, audiogen
 from audiocraft.data.audio import audio_write
 from utils import cuda_garbage_collection
+from utils._interfaces import DisposableModel
 
 
 def torch_optimizer(func):
@@ -16,7 +17,7 @@ def torch_optimizer(func):
     return wrapped
 
 
-class MusicGenerator(object):
+class MusicGenerator(DisposableModel):
     model = None
     model_name = None
 
@@ -31,12 +32,18 @@ class MusicGenerator(object):
         if music is not None:
             self.music = music
         if not self.model or self.model.name != self.model_name:
-            del self.model
-            cuda_garbage_collection()
+            self.unload_model()
             if self.music:
                 self.model = musicgen.MusicGen.get_pretrained(model_name)
             else:
                 self.model = audiogen.AudioGen.get_pretrained(model_name)
+
+    def unload_model(self):
+        if self.model:
+            del self.model
+            cuda_garbage_collection()
+            self.model = None
+
 
     @torch_optimizer
     def generate_music(

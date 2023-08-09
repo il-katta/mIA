@@ -3,15 +3,18 @@ from typing import Optional
 import gradio as gr
 
 from utils import package_exists
+from utils.system_stats import SystemStats
 
 
 def is_available():
     return package_exists("torch") and package_exists("transformers") and package_exists("diffusers")
 
 
-def gui():
+def gui(sysstats: SystemStats):
     from utils import cuda_garbage_collection
     from utils.image_upscaler import ImageUpscaler
+    image_upscaler = ImageUpscaler()
+    sysstats.register_disposable_model(image_upscaler)
 
     with gr.Row():
         image_in = gr.Image(label="Input Image", type="pil", image_mode="RGB")
@@ -61,23 +64,21 @@ def gui():
             load_in_8bit=False
     ):
         try:
-            with ImageUpscaler(model_name) as image_upscaler:
-                image_upscaler.load_model(
-                    enable_attention_slicing=enable_attention_slicing,
-                    enable_model_cpu_offload=enable_model_cpu_offload,
-                    enable_xformers_memory_efficient_attention=enable_xformers_memory_efficient_attention,
-                    load_in_4bit=load_in_4bit,
-                    load_in_8bit=load_in_8bit
-                )
-                image = image_upscaler.upscale(
-                    image,
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    num_inference_steps=num_inference_steps,
-                    guidance_scale=guidance_scale,
-                    noise_level=noise_level
-                )
-
+            image_upscaler.load_model(
+                enable_attention_slicing=enable_attention_slicing,
+                enable_model_cpu_offload=enable_model_cpu_offload,
+                enable_xformers_memory_efficient_attention=enable_xformers_memory_efficient_attention,
+                load_in_4bit=load_in_4bit,
+                load_in_8bit=load_in_8bit
+            )
+            image = image_upscaler.upscale(
+                image,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                noise_level=noise_level
+            )
             return image
         finally:
             cuda_garbage_collection()

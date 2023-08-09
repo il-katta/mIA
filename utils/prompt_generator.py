@@ -6,8 +6,10 @@ from transformers import pipeline
 from transformers.pipelines.text_generation import TextGenerationPipeline
 from typing import Optional
 
+from utils._interfaces import DisposableModel
 
-class PromptGenerator(object):
+
+class PromptGenerator(DisposableModel):
     pipe: Optional[TextGenerationPipeline] = None
 
     def __init__(self, model_name: str = "microsoft/Promptist"):
@@ -36,8 +38,9 @@ class PromptGenerator(object):
 
     def unload_model(self):
         self._logger.info(f"Unloading model {self.model_name}")
-        del self.pipe
-        self.pipe = None
+        if self.pipe:
+            del self.pipe
+            self.pipe = None
         self.gc()
 
     @staticmethod

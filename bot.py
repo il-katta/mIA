@@ -15,12 +15,13 @@ from langchain.agents import Tool, initialize_agent, AgentType, load_tools
 
 import config
 from callbackhandlers import OnStream, StreamMessage
+from utils._interfaces import DisposableModel
 from utils.tts import TextToSpeech
 
 __all__ = ["MiaBot"]
 
 
-class MiaBot:
+class MiaBot(DisposableModel):
     def __init__(self, conf: config.Config, agent_type: AgentType = AgentType.OPENAI_MULTI_FUNCTIONS):
         self.lock = Lock()
         llm = ChatOpenAI(
@@ -168,4 +169,6 @@ class MiaBot:
         else:
             self._logger.debug(f"TTL not enabled")
 
-
+    def unload_model(self):
+        if self._ttl:
+            self._ttl.unload_model()

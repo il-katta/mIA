@@ -1,15 +1,17 @@
 import gradio as gr
 
 from utils import package_exists
+from utils.system_stats import SystemStats
 
 
 def is_available():
     return package_exists("torch") and package_exists("audiocraft")
 
 
-def gui():
+def gui(sysstats: SystemStats):
     from utils.music_generator import MusicGenerator
     music_generator = MusicGenerator(music=False)
+    sysstats.register_disposable_model(music_generator)
 
     def generate_sound(prompt, model_name, duration, top_k, top_p, temperature, cfg_coef, extend_stride):
         return music_generator.generate_music(

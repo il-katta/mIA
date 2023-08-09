@@ -17,3 +17,5 @@
 
 # computer vision
 -r requirements-cv.txt
+
+-r requirements-sysinfo.txt

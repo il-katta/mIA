@@ -1,14 +1,13 @@
 import json
 from typing import List, Tuple, Any
 
-
-
 import config
 from bot import MiaBot
 import openai
 import gradio as gr
 
 from utils import package_exists
+from utils.system_stats import SystemStats
 
 
 def is_available():
@@ -68,11 +67,15 @@ def clean_all():
     return "", ""
 
 
-def gui(bot: MiaBot, conf: config.Config):
+def gui(sysstats: SystemStats):
     from utils.image_generator import ImageGenerator
     from utils.prompt_generator import PromptGenerator
+
     image_generator = ImageGenerator(model_name="rundiffusionFX")
+    sysstats.register_disposable_model(image_generator)
+
     prompt_generator = PromptGenerator()
+    sysstats.register_disposable_model(prompt_generator)
 
     def on_input_song(song_artist_title: str, images: List[Tuple[str, Any]], only_text: bool = False):
         '''
@@ -118,8 +121,7 @@ def gui(bot: MiaBot, conf: config.Config):
             clear_button = gr.Button("🗑", variant="secondary")
 
     with gr.Row():
-        # only_text_button = gr.Button("📝", variant="secondary")
-        only_text_checkbox = gr.Checkbox(label="📝 Generate only prompt", value=False)
+        generate_only_text_checkbox = gr.Checkbox(label="📝 Generate only prompt", value=False)
 
     with gr.Row():
         song_markdown = gr.Markdown("")
@@ -146,9 +148,11 @@ def gui(bot: MiaBot, conf: config.Config):
         lambda x: x,
         inputs=[message_textbox],
         outputs=[song_markdown],
-        queue=False
+        queue=False,
+        api_name="_",
     ).then(
         on_input_song,
-        inputs=[message_textbox, images, only_text_checkbox],
+        inputs=[message_textbox, images, generate_only_text_checkbox],
         outputs=[song_markdown, prompt_markdown, image_viewer, image_gallery, images],
+        api_name="generate_image_from_song",
     )

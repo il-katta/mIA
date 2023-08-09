@@ -4,8 +4,8 @@ import gradio as gr
 
 import string
 
-
 from utils import package_exists
+from utils.system_stats import SystemStats
 
 
 def is_available():
@@ -46,7 +46,7 @@ def is_valid_string(s):
 def try_decode_image(img, method, wm_type, length):
     import cv2
     import numpy as np
-    from imwatermark import WatermarkDecoder, WatermarkEncoder
+    from imwatermark import WatermarkDecoder
 
     # bgr = cv2.imread(img_path)
     bgr = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
@@ -66,7 +66,6 @@ def try_decode_image(img, method, wm_type, length):
         return watermark.decode('utf-8')
 
 
-
 def testit(img, method='dwtDct', wm_type='bytes', length=0):
     try:
         try_decode_image(img, method, wm_type, length)
@@ -77,7 +76,7 @@ def testit(img, method='dwtDct', wm_type='bytes', length=0):
 def test_search(img, wm_type='bytes'):
     return_text = ""
 
-    for method in ["dwtDct", "dwtDctSvd"]: # , "rivaGan"
+    for method in ["dwtDct", "dwtDctSvd"]:  # , "rivaGan"
         for length in range(1, 255):
             try:
                 result = try_decode_image(img, method, wm_type, length)
@@ -88,21 +87,20 @@ def test_search(img, wm_type='bytes'):
     return return_text if len(return_text) > 0 else "No result found"
 
 
-
-def gui():
+def gui(sysstats: SystemStats):
     with gr.Row():
         image_in = gr.Image(label="Input Image", type="numpy")
 
     with gr.Row():
         embedding_method_choose = gr.Dropdown([
-                "dwtDct", "dwtDctSvd", "rivaGan"
-            ],
+            "dwtDct", "dwtDctSvd", "rivaGan"
+        ],
             label="Embedding method",
             value="dwtDct"
         )
         wm_type_choose = gr.Dropdown([
-                "bytes", "bits", "ipv4", "uuid", "b16"
-            ],
+            "bytes", "bits", "ipv4", "uuid", "b16"
+        ],
             label="Watermark type",
             value="bytes"
         )
@@ -125,7 +123,9 @@ def gui():
         with gr.Row():
             text_out = gr.Textbox(label="Output Text", lines=10, placeholder="Output Text")
 
-    add_watermark_button.click(add_watermark, inputs=[image_in, text_in, embedding_method_choose, wm_type_choose], outputs=[image_out])
+    add_watermark_button.click(add_watermark, inputs=[image_in, text_in, embedding_method_choose, wm_type_choose],
+                               outputs=[image_out])
 
-    test_button.click(testit, inputs=[image_in, embedding_method_choose, wm_type_choose, length_number], outputs=[text_out])
+    test_button.click(testit, inputs=[image_in, embedding_method_choose, wm_type_choose, length_number],
+                      outputs=[text_out])
     search_button.click(test_search, inputs=[image_in, wm_type_choose], outputs=[text_out])

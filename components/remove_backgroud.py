@@ -1,13 +1,14 @@
 import gradio as gr
 
 from utils import package_exists
+from utils.system_stats import SystemStats
 
 
 def is_available():
     return package_exists("rembg")
 
 
-def gui():
+def gui(sysstats: SystemStats):
     import rembg
     import rembg.sessions
     with gr.Row():
@@ -63,4 +64,5 @@ def gui():
                 alpha_matting_background_threshold, alpha_matting_erode_size, only_mask_checkbox,
                 post_process_mask_checkbox, bgcolor, bgcolor_alpha],
         outputs=[image_out],
+        api_name="remove_background",
     )

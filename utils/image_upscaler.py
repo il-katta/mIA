@@ -8,9 +8,10 @@ import gc
 from transformers import BitsAndBytesConfig
 
 from utils import cuda_garbage_collection
+from utils._interfaces import DisposableModel
 
 
-class ImageUpscaler(object):
+class ImageUpscaler(DisposableModel):
     _upscaler: Optional[StableDiffusionUpscalePipeline] = None
 
     MODELS = {

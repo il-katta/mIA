@@ -7,6 +7,7 @@ from typing import Optional, Dict, List
 import elevenlabs
 
 import utils
+from utils._interfaces import DisposableModel
 
 try:
     from bark import SAMPLE_RATE
@@ -27,7 +28,7 @@ except ImportError:
 import config
 
 
-class TextToSpeech:
+class TextToSpeech(DisposableModel):
 
     def __init__(self, elevenlabs_apikey: Optional[str] = None):
         self._logger = logging.getLogger("TextToSpeech")
@@ -158,3 +159,12 @@ class TextToSpeech:
         files = list(_files)
         files.sort()
         return files
+
+    def unload_model(self):
+        if self._bark_processor is not None:
+            del self._bark_processor
+            self._bark_processor = None
+        if self._bark_model is not None:
+            del self._bark_model
+            self._bark_model = None
+        utils.cuda_garbage_collection()

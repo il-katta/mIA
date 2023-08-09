@@ -2,12 +2,14 @@ from utils import package_exists
 import gradio as gr
 import json
 
+from utils.system_stats import SystemStats
+
 
 def is_available():
     return package_exists("torch")
 
 
-def gui():
+def gui(sysstats: SystemStats):
     from utils.safetensors_utils import SafetensorsUtils
 
     def read_metadata(filepath) -> str:
@@ -20,6 +22,11 @@ def gui():
         submit_button = gr.Button("Read metadata")
 
     with gr.Row():
-        metadata_text = gr.Json(label="Metadata", lines=99, interactive=False)
+        metadata_text = gr.Json(label="Metadata", interactive=False)
 
-    submit_button.click(read_metadata, inputs=[filepath_text], outputs=[metadata_text])
+    submit_button.click(
+        read_metadata,
+        inputs=[filepath_text],
+        outputs=[metadata_text],
+        api_name="safe_tensors_read_metadata"
+    )

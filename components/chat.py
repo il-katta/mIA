@@ -2,13 +2,16 @@ import gradio as gr
 
 import config
 from bot import MiaBot
+from utils.system_stats import SystemStats
 
 
 def is_available():
     return True
 
 
-def gui(bot: 'MiaBot', conf: config.Config):
+def gui(conf: config.Config, sysstats: SystemStats):
+    bot = MiaBot(conf)
+    sysstats.register_disposable_model(bot)
 
     chatbot = gr.Chatbot([], elem_id="chatbot")
     audio_out = gr.Audio(
@@ -69,7 +72,8 @@ def gui(bot: 'MiaBot', conf: config.Config):
             conf.elevenlabs_voice_id_state,
             conf.bark_voice_id_state
         ],
-        outputs=[chatbot, audio_out]
+        outputs=[chatbot, audio_out],
+        api_name="chatbot_submit"
     ).then(
         lambda: gr.update(interactive=True),
         inputs=None,
@@ -87,6 +91,7 @@ def gui(bot: 'MiaBot', conf: config.Config):
         inputs=[chatbot, conf.tts_generator_state],
         outputs=[chatbot, audio_out]
     )
+
     clear_button.click(
         lambda: ("", [],),
         inputs=[],

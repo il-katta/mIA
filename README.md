@@ -62,3 +62,5 @@ dev mode ( automatic reload on code change )
 * Zero-Shot Object Detection with Grounding DINO
 * viper gpt https://github.com/cvlab-columbia/viper
 * fine tuning di facebook/audiogen-medium con dati da https://freesound.org
+* aggiungere generazione di TTS lunghi con bark ( https://github.com/suno-ai/bark/blob/main/notebooks/long_form_generation.ipynb  )
+* valutare il progetto https://github.com/coqui-ai/TTS per TTS

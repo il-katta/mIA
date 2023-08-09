@@ -44,6 +44,12 @@ RUN set -x && \
 ADD . /app
 WORKDIR /app
 
+RUN set -xe && \
+    useradd -s /bin/bash --uid 1000 --user-group -d /app app && \
+    chown -R app:app /app
+
 EXPOSE 1988
+
+USER app
 
 ENTRYPOINT ["python", "/app/main.py"]
