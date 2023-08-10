@@ -44,7 +44,7 @@ RUN set -x && \
 ADD . /app
 WORKDIR /app
 
-RUN set -xe && \
+RUN set -x && \
     useradd -s /bin/bash --uid 1000 --user-group -d /app app && \
     chown -R app:app /app
 

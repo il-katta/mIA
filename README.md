@@ -8,8 +8,8 @@
 * image generation from song title and artist name - generate descriptive images of a song using openai GPT, stable diffusion, and prompt optimization language models
 * image background removal using [rembg](https://github.com/danielgatis/rembg)
 * image upscaler using `stabilityai/stable-diffusion-x4-upscaler` and `stabilityai/sd-x2-latent-upscaler` models
-* read and write invisible watermarking of a image using [invisible-watermark](https://github.com/ShieldMnt/invisible-watermark) 
-* music generation using https://github.com/facebookresearch/audiocraft 
+* read and write invisible watermarking of an image using [invisible-watermark](https://github.com/ShieldMnt/invisible-watermark) 
+* music generation using [audiocraft](https://github.com/facebookresearch/audiocraft) 
 
 ## Installation
 
@@ -52,6 +52,8 @@ dev mode ( automatic reload on code change )
 ```
 
 ## TODO
+* [WIP] Zero-Shot Object Detection with Grounding DINO
+* [WIP] aggiungere https://github.com/haoheliu/audioldm2
 * riprisitinare la funzionalità dialogo con il bot ( ora il LLM non sembra avere visibilità dello storico della conversazione )
 * valutare di aggiungere https://github.com/photosynthesis-team/piq alla generazione delle immagini per decidere quali scartare ?
 * aggiungere il modulo per utilizzare roop https://github.com/s0md3v/roop
@@ -59,7 +61,6 @@ dev mode ( automatic reload on code change )
 * migliorare e documentare le api rest create automaticamente da gradio 
 * provare https://github.com/nagadomi/nunif per upscaling delle immagini
 * image colorizer using https://github.com/richzhang/colorization ( or other opensource project ?? )
-* Zero-Shot Object Detection with Grounding DINO
 * viper gpt https://github.com/cvlab-columbia/viper
 * fine tuning di facebook/audiogen-medium con dati da https://freesound.org
 * aggiungere generazione di TTS lunghi con bark ( https://github.com/suno-ai/bark/blob/main/notebooks/long_form_generation.ipynb  )
