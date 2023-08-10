@@ -34,6 +34,20 @@ def gui(sysstats: SystemStats):
         info += "</table>"
         return info
 
+    def get_gpu_processes():
+        processes = sysstats.get_processes()
+        info = f"<h3>{sysstats.get_gpu_name()}</h3>"
+        info += "<table style='width: 100%'>"
+        info += "<tr> <th>PID</th> <th>Memory</th> <th>Process name</th> </tr>"
+        for process in processes:
+            info += f"<tr>"
+            info += f"  <td>{process['pid']}</td>"
+            info += f"  <td><span style='white-space: nowrap; float: right;'>{round(process['used_gpu_memory'] / 1024 ** 2, 2)} MB</span></td> "
+            info += f"  <td>{process['process_name']}</td>"
+            info += f"  </tr>"
+        info += "</table>"
+        return info
+
     def get_gpu_list():
         gpu_list = []
         for gpu_id in range(sysstats.get_gpu_count()):
@@ -42,15 +56,6 @@ def gui(sysstats: SystemStats):
 
     with gr.Row():
         update_rate = 3
-        # for gpu_id in range(torch.cuda.device_count()):
-        #    with gr.Tab(label=get_gpu_name(gpu_id), id=f"system_info_gpu_tab_{gpu_id}", elem_id=f"system_info_gpu_tab_{gpu_id}"):
-        #        # GPU ram usage
-        #        gr.Markdown(
-        #            value=lambda: get_gpu_ram_usage(gpu_id),
-        #            label="GPU RAM usage",
-        #            every=gpu_id+1,
-        #            elem_id=f"system_info_gpu_ram_usage_{gpu_id}"
-        #        )
 
         gpu_card_select = gr.Radio(
             choices=get_gpu_list(),
@@ -65,21 +70,33 @@ def gui(sysstats: SystemStats):
             type="danger",
         )
 
-    with gr.Row():
-        output = gr.HTML(
+    with gr.Tab("General info"):
+        general_html = gr.HTML(
             value=lambda: get_gpu_info(),
             every=update_rate,
             elem_id=f"system_info_gpu_info_0"
         )
 
+    with gr.Tab("GPU Processes"):
+        processes_html = gr.HTML(
+            value=lambda: get_gpu_processes(),
+            every=update_rate,
+            elem_id=f"system_info_gpu_processes_0"
+        )
+
     def change_gpu_card(index):
         sysstats.change_gpu(int(index))
-        return get_gpu_info()
+        return get_gpu_info(), get_gpu_processes()
 
     def free_vram():
         sysstats.free_vram()
-        return get_gpu_info()
+        return get_gpu_info(), get_gpu_processes()
 
-    gpu_card_select.change(change_gpu_card, inputs=gpu_card_select, outputs=output, api_name="change_gpu_card")
+    gpu_card_select.change(
+        change_gpu_card,
+        inputs=gpu_card_select,
+        outputs=[general_html, processes_html],
+        api_name="change_gpu_card"
+    )
 
-    free_vram_button.click(free_vram, inputs=None, outputs=output, api_name="free_vram")
+    free_vram_button.click(free_vram, inputs=None, outputs=[general_html, processes_html], api_name="free_vram")

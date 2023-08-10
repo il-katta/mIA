@@ -106,6 +106,21 @@ class SystemStats(object):
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
 
+    def get_processes(self, gpu_id: Optional[int] = None):
+        processes = nvidia_smi.nvmlDeviceGetGraphicsRunningProcesses(self._get_gpu_handle(gpu_id))
+        processes.sort(
+                key=lambda p: p.usedGpuMemory or 0,
+                reverse=True
+        )
+        return [
+            {
+                "pid": p.pid,
+                "process_name": nvidia_smi.nvmlSystemGetProcessName(p.pid).decode('utf-8'),
+                "used_gpu_memory": p.usedGpuMemory,
+            }
+            for p in processes
+        ]
+
     @staticmethod
     def get_gpu_count() -> int:
         if nvidia_smi:

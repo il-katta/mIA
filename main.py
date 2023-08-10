@@ -9,12 +9,10 @@ import os
 
 import gradio as gr
 
-from bot import MiaBot
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
     generate_music, generate_sounds, safetensors_helper, system_info
 )
-from utils.tts import TextToSpeech
 import config
 
 logging.basicConfig(
@@ -30,10 +28,6 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
 with gr.Blocks() as demo:
     conf = config.load_config()
     sysstats: SystemStats = SystemStats()
-
-    if system_info.is_available():
-        with gr.Accordion("System Info"):
-            system_info.gui(sysstats=sysstats)
 
     if chat.is_available():
         with gr.Tab("Chat"):
@@ -70,7 +64,27 @@ with gr.Blocks() as demo:
     with gr.Tab("Settings"):
         settings.gui(conf=conf, sysstats=sysstats)
 
-demo.queue(concurrency_count=2)
+    if system_info.is_available():
+        with gr.Accordion("System Info", open=False):
+            system_info.gui(sysstats=sysstats)
+
+demo.queue(concurrency_count=10)
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)
+    import signal
+    import sys
+
+
+    def on_signal(sig, frame):
+        print("Bye")
+        demo.server.close()
+        demo.close()
+        sys.exit(0)
+
+
+    signal.signal(signal.SIGINT, on_signal)
+
+    try:
+        demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)
+    except KeyboardInterrupt:
+        on_signal(None, None)
