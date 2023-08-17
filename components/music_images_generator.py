@@ -1,8 +1,6 @@
 import json
 from typing import List, Tuple, Any
 
-import config
-from bot import MiaBot
 import openai
 import gradio as gr
 
@@ -11,7 +9,7 @@ from utils.system_stats import SystemStats
 
 
 def is_available():
-    return package_exists("openai") and package_exists("transformers") and package_exists("torch")
+    return package_exists("openai") and package_exists("transformers") and package_exists("torch") and package_exists("diffusers")
 
 
 def call_openai_api(text: str):

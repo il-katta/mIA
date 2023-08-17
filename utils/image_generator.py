@@ -76,6 +76,62 @@ MODELS = {
         "type": ModelType.FANTASY,
     },
 }
+
+SCHEDULERS = {
+    "DDIM": {
+        "class": DDIMScheduler,
+        "config": {}
+    },
+    "Euler": {
+        "class": EulerDiscreteScheduler,
+        "config": {}
+    },
+    "Euler a": {
+        "class": EulerAncestralDiscreteScheduler,
+        "config": {}
+    },
+    "DPM2 Karras": {
+        "class": KDPM2DiscreteScheduler,
+        "config": {}
+    },
+    "DPM2 a Karras": {
+        "class": KDPM2AncestralDiscreteScheduler,
+        "config": {}
+    },
+    "LMS": {
+        "class": LMSDiscreteScheduler,
+        "config": {}
+    },
+    "PNDM": {
+        "class": PNDMScheduler,
+        "config": {"skip_prk_steps": True}
+    },
+    "DPM Solver": {
+        "class": DPMSolverMultistepScheduler,
+        "config": {"algorithm_type": "dpmsolver"}
+    },
+    "DPM Solver++": {
+        "class": DPMSolverMultistepScheduler,
+        "config": {"algorithm_type": "dpmsolver++"}
+    },
+    "DPM SDE Solver++": {
+        "class": DPMSolverMultistepScheduler,
+        "config": {"algorithm_type": "sde-dpmsolver++"}
+    },
+    "DPM Single": {
+        "class": DPMSolverSinglestepScheduler,
+        "config": {}
+    },
+    "Heun": {
+        "class": HeunDiscreteScheduler,
+        "config": {"use_karras_sigmas": False}
+    },
+    "Heun Karras": {
+        "class": HeunDiscreteScheduler,
+        "config": {"use_karras_sigmas": True}
+    },
+}
+
 ModelNames = Literal["sd_xl_base", "sd_xl_refiner", "photon", "rundiffusionFX", "rundiffusionFX25D"]
 
 
@@ -203,6 +259,10 @@ class ImageGenerator(DisposableModel):
 
         self._default_scheduler = self.pipe.scheduler
 
+    @staticmethod
+    def generate_seed():
+        return random.randint(0, sys.maxsize)
+
     @torch_optimizer
     def generate_image(
             self,
@@ -217,35 +277,16 @@ class ImageGenerator(DisposableModel):
         if self.pipe is None:
             self.load_model()
         if seed < 1:
-            seed = random.randint(0, sys.maxsize)
+            seed = self.generate_seed()
         generator = torch.Generator(self.pipe.device).manual_seed(seed)
 
-        self._logger.info(f"Using sampler {sampler_name}")
-        if sampler_name == "DDIM":
-            self.pipe.scheduler = DDIMScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "Euler":
-            self.pipe.scheduler = EulerDiscreteScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "Euler a":
-            self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "DPM2 Karras":
-            self.pipe.scheduler = KDPM2DiscreteScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "DPM2 a Karras":
-            self.pipe.scheduler = KDPM2AncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "LMS":
-            self.pipe.scheduler = LMSDiscreteScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "PNDM":
-            self.pipe.scheduler = PNDMScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "DPM Solver":
-            self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(
-                self.pipe.scheduler.config | {"algorithm_type": "dpmsolver"})
-        elif sampler_name == "DPM Solver++":
-            self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(
-                self.pipe.scheduler.config | {"algorithm_type": "dpmsolver++"})
-        elif sampler_name == "DPM Single":
-            self.pipe.scheduler = DPMSolverSinglestepScheduler.from_config(self.pipe.scheduler.config)
-        elif sampler_name == "heun":
-            self.pipe.scheduler = HeunDiscreteScheduler.from_config(self.pipe.scheduler.config)
+        if sampler_name in SCHEDULERS.keys():
+            self._logger.info(f"Using sampler {sampler_name}")
+            self.pipe.scheduler = SCHEDULERS[sampler_name]["class"].from_config(
+                self._default_scheduler.config | SCHEDULERS[sampler_name]["config"]
+            )
         else:
+            self._logger.info(f"Using default scheduler")
             self.pipe.scheduler = self._default_scheduler
 
         if self.model["model_family"] == ModelFamily.SD_XL_BASE:

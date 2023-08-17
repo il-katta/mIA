@@ -1,9 +1,6 @@
-from dotenv import load_dotenv
-
+# noinspection PyUnresolvedReferences
+import utils.force_load_env
 from utils.system_stats import SystemStats
-
-load_dotenv()
-
 import logging
 import os
 
@@ -11,7 +8,7 @@ import gradio as gr
 
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
-    generate_music, generate_sounds, safetensors_helper, system_info
+    generate_music, generate_sounds, safetensors_helper, generate_image, system_info
 )
 import config
 
@@ -27,11 +24,15 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
 
 with gr.Blocks() as demo:
     conf = config.load_config()
-    sysstats: SystemStats = SystemStats()
+    sysstats: SystemStats = SystemStats(store_history=True)
 
     if chat.is_available():
         with gr.Tab("Chat"):
             chat.gui(conf=conf, sysstats=sysstats)
+
+    if generate_image.is_available():
+        with gr.Tab("Image Generator"):
+            generate_image.gui(sysstats=sysstats)
 
     if music_images_generator.is_available():
         with gr.Tab("Music Images Generator"):
@@ -58,7 +59,7 @@ with gr.Blocks() as demo:
             generate_sounds.gui(sysstats=sysstats)
 
     if safetensors_helper.is_available():
-        with gr.Tab("Safetensors Helper"):
+        with gr.Tab("Read safetensors metadata"):
             safetensors_helper.gui(sysstats=sysstats)
 
     with gr.Tab("Settings"):
@@ -77,12 +78,18 @@ if __name__ == "__main__":
 
     def on_signal(sig, frame):
         print("Bye")
-        demo.server.close()
+        if demo.enable_queue:
+            try:
+                demo._queue.close()
+                demo._queue.push(None)
+            except:
+                pass
         demo.close()
         sys.exit(0)
 
 
     signal.signal(signal.SIGINT, on_signal)
+    signal.signal(signal.SIGTERM, on_signal)
 
     try:
         demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)
