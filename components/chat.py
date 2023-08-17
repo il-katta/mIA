@@ -50,7 +50,8 @@ def gui(conf: config.Config, sysstats: SystemStats):
             chatbot,
             conf.tts_generator_state,
             conf.elevenlabs_voice_id_state,
-            conf.bark_voice_id_state
+            conf.bark_voice_id_state,
+            conf.bark_device_state
         ],
         outputs=[chatbot, audio_out]
     ).then(
@@ -70,7 +71,8 @@ def gui(conf: config.Config, sysstats: SystemStats):
             chatbot,
             conf.tts_generator_state,
             conf.elevenlabs_voice_id_state,
-            conf.bark_voice_id_state
+            conf.bark_voice_id_state,
+            conf.bark_device_state
         ],
         outputs=[chatbot, audio_out],
         api_name="chatbot_submit"
@@ -88,7 +90,13 @@ def gui(conf: config.Config, sysstats: SystemStats):
         queue=False
     ).then(
         bot.on_message,
-        inputs=[chatbot, conf.tts_generator_state],
+        inputs=[
+            chatbot,
+            conf.tts_generator_state,
+            conf.elevenlabs_voice_id_state,
+            conf.bark_voice_id_state,
+            conf.bark_device_state
+        ],
         outputs=[chatbot, audio_out]
     )
 

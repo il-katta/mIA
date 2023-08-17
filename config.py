@@ -23,6 +23,7 @@ __all__ = [
 
 GENERATOR_ELEVENLABS = "ElevenLabs"
 GENERATOR_BARK = "Bark"
+BARK_DEVICE = "cuda"
 GENERATOR_DISABLED = "[Disabled]"
 OPENAI_MODEL = "gpt-4"
 OPENAI_TEMPERATURE = 0.7
@@ -32,6 +33,28 @@ ELEVENLABS_DEFAULT_APIKEY = os.environ.get("ELEVENLABS_API_KEY", None)
 
 ELEVENLABS_DEFAULT_VOICE = os.environ.get("ELEVENLABS_DEFAULT_VOICE", '21m00Tcm4TlvDq8ikWAM')
 BARK_DEFAULT_VOICE = os.environ.get("BARK_DEFAULT_VOICE", "v2/it_speaker_9")
+
+BARK_DEVICES = [
+    "cpu",
+    "cuda",
+    "ipu",
+    "xpu",
+    "mkldnn",
+    "opengl",
+    "opencl",
+    "ideep",
+    "hip",
+    "ve",
+    "fpga",
+    "ort",
+    "xla",
+    "lazy",
+    "vulkan",
+    "mps",
+    "meta",
+    "hpu",
+    "mtia"
+]
 
 
 class State(gr.State, ABC):
@@ -78,11 +101,12 @@ class State(gr.State, ABC):
 
 
 class Config(gr.State, Iterable[gr.State], ABC):
-    openai_model_state: gr.State
-    tts_generator_state: gr.State
-    elevenlabs_voice_id_state: gr.State
-    bark_voice_id_state: gr.State
-    openai_temperature_state: gr.State
+    openai_model_state: State
+    tts_generator_state: State
+    elevenlabs_voice_id_state: State
+    bark_voice_id_state: State
+    bark_device_state: State
+    openai_temperature_state: State
 
     def __init__(self):
         self.openai_model_state = State("openai_model", OPENAI_MODEL)
@@ -90,6 +114,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
         self.tts_generator_state = State("tts_generator", GENERATOR_DISABLED)
         self.elevenlabs_voice_id_state = State("elevenlabs_voice_id", ELEVENLABS_DEFAULT_VOICE)
         self.bark_voice_id_state = State("bark_voice_id", BARK_DEFAULT_VOICE)
+        self.bark_device_state = State("bark_device", BARK_DEVICE)
         openai.api_key = OPENAI_API_KEY
         gr.components.IOComponent.__init__(self, value=self.__dict__())
 
@@ -99,7 +124,8 @@ class Config(gr.State, Iterable[gr.State], ABC):
             openai_temperature: Optional[float] = OPENAI_TEMPERATURE,
             tts_generator: Optional[str] = GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = ELEVENLABS_DEFAULT_VOICE,
-            bark_voice_id: Optional[str] = BARK_DEFAULT_VOICE
+            bark_voice_id: Optional[str] = BARK_DEFAULT_VOICE,
+            bark_device: Optional[str] = BARK_DEVICE
     ):
         self.openai_model_state.value = openai_model
         self.tts_generator_state.value = tts_generator
@@ -107,6 +133,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
         self.tts_generator_state.value = tts_generator
         self.elevenlabs_voice_id_state.value = elevenlabs_voice_id
         self.bark_voice_id_state.value = bark_voice_id
+        self.bark_device_state.value = bark_device
 
     def __list__(self) -> Iterable[gr.State]:
         return [
@@ -114,7 +141,8 @@ class Config(gr.State, Iterable[gr.State], ABC):
             self.openai_temperature_state,
             self.tts_generator_state,
             self.elevenlabs_voice_id_state,
-            self.bark_voice_id_state
+            self.bark_voice_id_state,
+            self.bark_device_state
         ]
 
     def __iter__(self) -> Iterator[gr.State]:
@@ -127,6 +155,7 @@ class Config(gr.State, Iterable[gr.State], ABC):
             "tts_generator": self.tts_generator_state.value,
             "elevenlabs_voice_id": self.elevenlabs_voice_id_state.value,
             "bark_voice_id": self.bark_voice_id_state.value,
+            "bark_device": self.bark_device_state.value,
         }
 
     def get_block_name(self) -> str:

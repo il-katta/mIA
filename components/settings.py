@@ -80,6 +80,19 @@ def gui(conf: config.Config, sysstats: SystemStats):
                 outputs=[conf.bark_voice_id_state]
             )
 
+            bark_device_radio = gr.Dropdown(
+                choices=config.BARK_DEVICES,
+                type="value",
+                value=conf.bark_device_state.value,
+                label="Bark Device",
+            )
+
+            bark_device_radio.change(
+                lambda value: value,
+                inputs=[bark_device_radio],
+                outputs=[conf.bark_device_state]
+            )
+
     # ElevenLabs
     with gr.Group(visible=elevelabs_enabled()) as elevenlabs_row:
         with gr.Row():
@@ -122,7 +135,7 @@ def gui(conf: config.Config, sysstats: SystemStats):
                 autoplay=True,
             )
 
-    def test_voice(status: str, elevenlabs_voice: str, bark_voice_id: str) -> str:
+    def test_voice(status: str, elevenlabs_voice: str, bark_voice_id: str, bark_device: str) -> str:
         if status == config.GENERATOR_ELEVENLABS:
             elevenlabs_voice_id = elevenlabs_voices_radio_change(elevenlabs_voice)
             examples_dirpath = config.DATA_DIR / "elevenlabs"
@@ -138,7 +151,8 @@ def gui(conf: config.Config, sysstats: SystemStats):
         elif status == config.GENERATOR_BARK:
             filepath = tts.bark_generate(
                 "Ciao. Come va? [laughs] Sono un'intelligenza artificiale, un sistema avanzato progettato per interagire con gli utenti.",
-                bark_voice_id
+                bark_voice_id,
+                device=bark_device
             )
             return filepath
         else:
@@ -146,7 +160,7 @@ def gui(conf: config.Config, sysstats: SystemStats):
 
     bark_test_btn.click(
         test_voice,
-        inputs=[tts_generator_radio, elevenlabs_voices_radio, bark_voices_radio],
+        inputs=[tts_generator_radio, elevenlabs_voices_radio, bark_voices_radio, bark_device_radio],
         outputs=[bark_test_audio],
         queue=False
     )

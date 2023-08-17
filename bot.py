@@ -117,7 +117,8 @@ class MiaBot(DisposableModel):
             history,
             tts_generator_state: str = config.GENERATOR_DISABLED,
             elevenlabs_voice_id: Optional[str] = None,
-            bark_voice_id: Optional[str] = None
+            bark_voice_id: Optional[str] = None,
+            bark_device: Optional[str] = config.BARK_DEVICE,
     ):
         question = history[-1][0]
         self._logger.debug(f"on_message question: '{question}' - tts_generator_state: {tts_generator_state}")
@@ -162,7 +163,7 @@ class MiaBot(DisposableModel):
                 self._logger.info("TTL rate limit reached")
         elif tts_generator_state == config.GENERATOR_BARK:
             self._logger.debug(f"generating bark audio using voice '{bark_voice_id}' ...")
-            audiofile = self._ttl.bark_generate(response, bark_voice_id)
+            audiofile = self._ttl.bark_generate(response, bark_voice_id, device=bark_device)
             history.append((None, (audiofile,)))
             self._logger.debug(f"audio generated: '{audiofile}'")
             yield history, audiofile
