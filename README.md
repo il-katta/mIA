@@ -5,6 +5,7 @@
 * chatbot: openai chatbot mainly build with [langchain](https://www.langchain.com/) with 
   * text to speech functionality using [elevenlabs service](https://elevenlabs.io/) or [bark project](https://github.com/suno-ai/bark)
   * math chain to solve math problems
+* image generation from text
 * image generation from song title and artist name - generate descriptive images of a song using openai GPT, stable diffusion, and prompt optimization language models
 * image background removal using [rembg](https://github.com/danielgatis/rembg)
 * image upscaler using `stabilityai/stable-diffusion-x4-upscaler` and `stabilityai/sd-x2-latent-upscaler` models
@@ -65,3 +66,6 @@ dev mode ( automatic reload on code change )
 * fine tuning di facebook/audiogen-medium con dati da https://freesound.org
 * aggiungere generazione di TTS lunghi con bark ( https://github.com/suno-ai/bark/blob/main/notebooks/long_form_generation.ipynb  )
 * valutare il progetto https://github.com/coqui-ai/TTS per TTS
+* aggiungere pix2pix https://huggingface.co/timbrooks/instruct-pix2pix
+* aggiungere https://huggingface.co/DeepFloyd/IF-I-XL-v1.0 con https://github.com/LuChengTHU/dpm-solver/blob/main/README.md
+* 
