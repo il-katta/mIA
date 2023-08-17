@@ -9,7 +9,19 @@ def is_available():
 
 
 def gui(sysstats: SystemStats):
-    def get_gpu_info():
+    def get_gpu_fan_speed_info():
+        info = f"<h3>{sysstats.get_gpu_name()}</h3>"
+        info += '<table style="width: 100%">'
+
+        fan_speed = sysstats.get_gpu_fan_speed()
+        if fan_speed is not None:
+            info += f'<tr> <th>Fan speed</th> <td colspan="2">{fan_speed}%</td> </tr>'
+            info += f'<tr> <th></th> <td colspan="2"> <progress style="width: 100%" value="{fan_speed}" max="100">{fan_speed}%</progress> </td> </tr>'
+
+        info += "</table>"
+        return info
+
+    def get_gpu_ram_info():
         allocated, total = sysstats.get_gpu_ram_usage()
 
         allocated_gb = round(allocated / 1024 ** 3, 2)
@@ -17,19 +29,20 @@ def gui(sysstats: SystemStats):
         info = f"<h3>{sysstats.get_gpu_name()}</h3>"
         info += '<table style="width: 100%">'
         info += f"<tr> <th>RAM</th> <td>{allocated_gb}GiB</td> <td>{total_gb}GiB</td> </tr>"
-        info += f'<tr> <td></td> <td colspan="2"> <progress style="width: 100%" value="{allocated}" max="{total}">{allocated_gb}GiB</progress> </td> </tr>'
+        info += f'<tr> <th></th> <td colspan="2"> <progress style="width: 100%" value="{allocated}" max="{total}">{allocated_gb}GiB</progress> </td> </tr>'
+        info += "</table>"
+        return info
+
+    def get_gpu_temperature_info():
+        info = f"<h3>{sysstats.get_gpu_name()}</h3>"
+        info += '<table style="width: 100%">'
 
         temp = sysstats.get_gpu_temperature()
         if temp:
             info += f'<tr> <th>Temperature</th> <td colspan="2">{temp}° C</td> </tr>'
         pw_actual, pw_max = sysstats.get_power_usage()
         info += f"<tr> <th>Power</th> <td>{pw_actual}W</td> <td>{pw_max}W</td> </tr>"
-        info += f'<tr> <td></td> <td colspan="2"> <progress style="width: 100%" value="{pw_actual}" max="{pw_max}">{pw_actual}W</progress> </td> </tr>'
-
-        fan_speed = sysstats.get_gpu_fan_speed()
-        if fan_speed is not None:
-            info += f'<tr> <th>Fan speed</th> <td colspan="2">{fan_speed}%</td> </tr>'
-            info += f'<tr> <td></td> <td colspan="2"> <progress style="width: 100%" value="{fan_speed}" max="100">{fan_speed}%</progress> </td> </tr>'
+        info += f'<tr> <th></th> <td colspan="2"> <progress style="width: 100%" value="{pw_actual}" max="{pw_max}">{pw_actual}W</progress> </td> </tr>'
 
         info += "</table>"
         return info
@@ -65,16 +78,64 @@ def gui(sysstats: SystemStats):
             elem_id="system_info_gpu_card_select",
         )
 
-        free_vram_button = gr.Button(
-            "Free VRAM",
-            type="danger",
-        )
+        free_vram_button = gr.Button("Free VRAM")
 
     with gr.Tab("General info"):
-        general_html = gr.HTML(
-            value=lambda: get_gpu_info(),
+        gpu_ram_info_html = gr.HTML(
+            value=lambda: get_gpu_ram_info(),
             every=update_rate,
-            elem_id=f"system_info_gpu_info_0"
+        )
+
+        def get_gpu_ram_usage_history():
+            df = sysstats.get_gpu_ram_usage_history()
+            df["gpu_ram_usage_allocated"] = df["gpu_ram_usage_allocated"] / 1024 ** 3
+            df["gpu_ram_usage_total"] = df["gpu_ram_usage_total"] / 1024 ** 3
+            return df
+
+        gpu_ram_info_plot = gr.LinePlot(
+            value=get_gpu_ram_usage_history,
+            title="GPU RAM Usage (GB)",
+            x="timestamp",
+            y="gpu_ram_usage_allocated",
+            x_title="Time",
+            y_title="Allocated RAM",
+            every=update_rate,
+            interactive=False,
+            container=False,
+        )
+
+        gpu_temperature_html = gr.HTML(
+            value=lambda: get_gpu_temperature_info(),
+            every=update_rate,
+        )
+
+        gpu_temperature_plot = gr.LinePlot(
+            value=sysstats.get_gpu_temperature_history,
+            title="GPU Temperature (°C)",
+            x="timestamp",
+            y="gpu_temperature",
+            x_title="Time",
+            y_title="°C",
+            every=update_rate,
+            interactive=False,
+            container=False,
+        )
+
+        gpu_fan_speed_html = gr.HTML(
+            value=lambda: get_gpu_fan_speed_info(),
+            every=update_rate,
+        )
+
+        gpu_fan_speed_plot = gr.LinePlot(
+            value=sysstats.get_gpu_fan_speed_history,
+            title="GPU Fan Speed (%)",
+            x="timestamp",
+            y="gpu_fan_speed",
+            x_title="Time",
+            y_title="%",
+            every=update_rate,
+            interactive=False,
+            container=False,
         )
 
     with gr.Tab("GPU Processes"):
@@ -86,17 +147,48 @@ def gui(sysstats: SystemStats):
 
     def change_gpu_card(index):
         sysstats.change_gpu(int(index))
-        return get_gpu_info(), get_gpu_processes()
+        return (
+            get_gpu_ram_info(), get_gpu_ram_usage_history(),
+            get_gpu_temperature_info(), sysstats.get_gpu_temperature_history(),
+            get_gpu_fan_speed_info(), sysstats.get_gpu_fan_speed_history(),
+            get_gpu_processes()
+        )
 
     def free_vram():
         sysstats.free_vram()
-        return get_gpu_info(), get_gpu_processes()
+        return (
+            get_gpu_ram_info(), get_gpu_ram_usage_history(),
+            get_gpu_temperature_info(), sysstats.get_gpu_temperature_history(),
+            get_gpu_fan_speed_info(), sysstats.get_gpu_fan_speed_history(),
+            get_gpu_processes()
+        )
 
     gpu_card_select.change(
         change_gpu_card,
         inputs=gpu_card_select,
-        outputs=[general_html, processes_html],
+        outputs=[
+            gpu_ram_info_html,
+            gpu_ram_info_plot,
+            gpu_temperature_html,
+            gpu_temperature_plot,
+            gpu_fan_speed_html,
+            gpu_fan_speed_plot,
+            processes_html
+        ],
         api_name="change_gpu_card"
     )
 
-    free_vram_button.click(free_vram, inputs=None, outputs=[general_html, processes_html], api_name="free_vram")
+    free_vram_button.click(
+        free_vram,
+        inputs=None,
+        outputs=[
+            gpu_ram_info_html,
+            gpu_ram_info_plot,
+            gpu_temperature_html,
+            gpu_temperature_plot,
+            gpu_fan_speed_html,
+            gpu_fan_speed_plot,
+            processes_html
+        ],
+        api_name="free_vram"
+    )

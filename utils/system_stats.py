@@ -1,6 +1,8 @@
 import logging
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 import gc
+
+import pandas as pd
 
 from utils import package_exists
 from utils._interfaces import DisposableModel
@@ -22,11 +24,48 @@ class SystemStats(object):
     _gpu_handle = None
     _gpu_id: int = None
     _torch_device: Optional[torch.cuda.device] = None
+    _history: pd.DataFrame = pd.DataFrame
 
-    def __init__(self, gpu_id=0):
+    def __init__(self, gpu_id=0, store_history=False):
+        self._store_history = store_history
         if nvidia_smi:
             nvidia_smi.nvmlInit()
         self.change_gpu(gpu_id)
+        if self._store_history:
+            # create new Dataframe with columns for each metric and gpu_id and timestamp as index
+            self._history = pd.DataFrame(
+                columns=["gpu_id", "timestamp", "gpu_temperature", "gpu_fan_speed", "power_usage_actual",
+                         "power_usage_total", "gpu_ram_usage_allocated", "gpu_ram_usage_total"])
+            self._history.set_index(["timestamp", "gpu_id"], inplace=True)
+
+    def _add_to_history(self, gpu_id: Optional[int] = None,
+                        gpu_temperature: Optional[int] = None,
+                        gpu_fan_speed: Optional[int] = None,
+                        power_usage_actual: Optional[int] = None,
+                        power_usage_total: Optional[int] = None,
+                        gpu_ram_usage_allocated: Optional[int] = None,
+                        gpu_ram_usage_total: Optional[int] = None):
+        if self._store_history:
+            # append new row to history
+            gpu_id = gpu_id if gpu_id is not None else self._gpu_id
+            new_row = {
+                "gpu_id": gpu_id,
+                "timestamp": pd.Timestamp.now(),
+                "gpu_temperature": gpu_temperature,
+                "gpu_fan_speed": gpu_fan_speed,
+                "power_usage_actual": power_usage_actual,
+                "power_usage_total": power_usage_total,
+                "gpu_ram_usage_allocated": gpu_ram_usage_allocated,
+                "gpu_ram_usage_total": gpu_ram_usage_total
+            }
+
+            self._history = pd.concat(
+                [
+                    self._history,
+                    pd.DataFrame([new_row], index=["timestamp", "gpu_id"])
+                ],
+                ignore_index=True
+            )
 
     def _init_torch(self):
         if torch and torch.cuda.is_available():
@@ -63,20 +102,34 @@ class SystemStats(object):
 
     def get_gpu_temperature(self, gpu_id: Optional[int] = None) -> Optional[int]:
         if nvidia_smi:
-            return nvidia_smi.nvmlDeviceGetTemperature(self._get_gpu_handle(gpu_id), 0)
+            value = nvidia_smi.nvmlDeviceGetTemperature(self._get_gpu_handle(gpu_id), 0)
+            self._add_to_history(gpu_id, gpu_temperature=value)
+            return value
         return None
+
+    def get_gpu_temperature_history(self, gpu_id: Optional[int] = None) -> pd.DataFrame:
+        return self._get_history(["gpu_temperature"], gpu_id)
 
     def get_gpu_fan_speed(self, gpu_id: Optional[int] = None) -> Optional[int]:
         if nvidia_smi:
-            return nvidia_smi.nvmlDeviceGetFanSpeed(self._get_gpu_handle(gpu_id))
+            value = nvidia_smi.nvmlDeviceGetFanSpeed(self._get_gpu_handle(gpu_id))
+            self._add_to_history(gpu_id, gpu_fan_speed=value)
+            return value
         return None
+
+    def get_gpu_fan_speed_history(self, gpu_id: Optional[int] = None) -> pd.DataFrame:
+        return self._get_history(["gpu_fan_speed"], gpu_id)
 
     def get_power_usage(self, gpu_id: Optional[int] = None) -> Tuple[int, int]:
         if nvidia_smi:
             actual = int(nvidia_smi.nvmlDeviceGetPowerUsage(self._get_gpu_handle(gpu_id)) / 1000)
             total = int(nvidia_smi.nvmlDeviceGetPowerManagementLimit(self._get_gpu_handle(gpu_id)) / 1000)
+            self._add_to_history(gpu_id, power_usage_actual=actual, power_usage_total=total)
             return actual, total
         return 0, 0
+
+    def get_power_usage_history(self, gpu_id: Optional[int] = None) -> pd.DataFrame:
+        return self._get_history(["power_usage_actual", "power_usage_total"], gpu_id)
 
     def get_gpu_ram_usage(self, gpu_id: Optional[int] = None) -> Tuple[int, int]:
         if nvidia_smi:
@@ -89,8 +142,12 @@ class SystemStats(object):
         else:
             allocated = 0
             total = 0
-
+        if total > 0:
+            self._add_to_history(gpu_id, gpu_ram_usage_allocated=allocated, gpu_ram_usage_total=total)
         return allocated, total
+
+    def get_gpu_ram_usage_history(self, gpu_id: Optional[int] = None) -> pd.DataFrame:
+        return self._get_history(["gpu_ram_usage_allocated", "gpu_ram_usage_total"], gpu_id)
 
     def free_vram(self):
         for model in self._disposable_models:
@@ -109,8 +166,8 @@ class SystemStats(object):
     def get_processes(self, gpu_id: Optional[int] = None):
         processes = nvidia_smi.nvmlDeviceGetGraphicsRunningProcesses(self._get_gpu_handle(gpu_id))
         processes.sort(
-                key=lambda p: p.usedGpuMemory or 0,
-                reverse=True
+            key=lambda p: p.usedGpuMemory or 0,
+            reverse=True
         )
         return [
             {
@@ -133,3 +190,9 @@ class SystemStats(object):
 
     def register_disposable_model(self, model: DisposableModel):
         self._disposable_models.append(model)
+
+    def _get_history(self, fields: List[str], gpu_id: Optional[int] = None) -> pd.DataFrame:
+        # max allowed in gradio is 5000
+        # reduces to 1000 for performance and graphical reasons
+        gpu_id = gpu_id if gpu_id is not None else self._gpu_id
+        return self._history[self._history["gpu_id"] == gpu_id][fields + ["timestamp", "gpu_id"]].dropna().tail(1000)
