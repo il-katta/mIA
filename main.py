@@ -8,7 +8,7 @@ import gradio as gr
 
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
-    generate_music, generate_sounds, safetensors_helper, generate_image, system_info
+    generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, system_info
 )
 import config
 
@@ -37,6 +37,10 @@ with gr.Blocks() as demo:
     if music_images_generator.is_available():
         with gr.Tab("Music Images Generator"):
             music_images_generator.gui(sysstats=sysstats)
+
+    if edit_image.is_available():
+        with gr.Tab("Image Editor"):
+            edit_image.gui(sysstats=sysstats)
 
     if remove_backgroud.is_available():
         with gr.Tab("Image background remover"):
