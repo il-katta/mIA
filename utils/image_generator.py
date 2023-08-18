@@ -20,7 +20,7 @@ from enum import Enum
 import gc
 
 import config
-from utils import cuda_garbage_collection
+from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 from utils._torch_utils import torch_optimizer
 

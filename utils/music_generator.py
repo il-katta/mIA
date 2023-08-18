@@ -3,7 +3,7 @@ from typing import Optional
 
 from audiocraft.models import musicgen, audiogen
 from audiocraft.data.audio import audio_write
-from utils import cuda_garbage_collection
+from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 from utils._torch_utils import torch_optimizer
 

@@ -6,7 +6,8 @@ from typing import Optional, Dict, List
 
 import elevenlabs
 
-import utils
+from utils import package_exists
+from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 
 try:
@@ -14,11 +15,11 @@ try:
     from bark.generation import CUR_PATH
 
     bark_available = (
-            utils.package_exists("transformers") and
-            utils.package_exists("bitsandbytes") and
-            utils.package_exists("torch") and
-            utils.package_exists("accelerate") and
-            utils.package_exists("scipy")
+            package_exists("transformers") and
+            package_exists("bitsandbytes") and
+            package_exists("torch") and
+            package_exists("accelerate") and
+            package_exists("scipy")
     )
 except ImportError:
     SAMPLE_RATE = 24_000
@@ -167,4 +168,4 @@ class TextToSpeech(DisposableModel):
         if self._bark_model is not None:
             del self._bark_model
             self._bark_model = None
-        utils.cuda_garbage_collection()
+        cuda_garbage_collection()

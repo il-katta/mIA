@@ -11,7 +11,7 @@ def is_available():
 
 
 def gui(sysstats: SystemStats):
-    from utils import cuda_garbage_collection
+    from utils._torch_utils import cuda_garbage_collection
     from utils.image_upscaler import ImageUpscaler
     image_upscaler = ImageUpscaler()
     sysstats.register_disposable_model(image_upscaler)

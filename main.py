@@ -1,5 +1,6 @@
 # noinspection PyUnresolvedReferences
 import utils._force_load_env
+from utils import is_debug_mode_enabled
 from utils.system_stats import SystemStats
 import logging
 import os
@@ -73,6 +74,7 @@ with gr.Blocks() as demo:
         with gr.Accordion("System Info", open=False):
             system_info.gui(sysstats=sysstats)
 
+gr.close_all(True)
 demo.queue(concurrency_count=10)
 
 if __name__ == "__main__":
@@ -96,6 +98,9 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, on_signal)
 
     try:
-        demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)
+        if is_debug_mode_enabled():
+            demo.launch(server_name="0.0.0.0", debug=True, show_error=True, app_kwargs={"dev": "true"}, server_port=1988)
+        else:
+            demo.launch(server_name="0.0.0.0", show_error=True, server_port=1988)
     except KeyboardInterrupt:
         on_signal(None, None)

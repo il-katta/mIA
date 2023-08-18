@@ -4,7 +4,7 @@ import PIL.Image
 import math
 from diffusers import StableDiffusionInstructPix2PixPipeline
 import config
-from utils import cuda_garbage_collection
+from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 import torch
 
@@ -20,7 +20,8 @@ class Pix2Pix(DisposableModel):
         self.pipe: Optional[StableDiffusionInstructPix2PixPipeline] = None
 
     @torch_optimizer
-    def generate(self, img: PIL.Image, prompt: str, num_inference_steps=10, image_guidance_scale=1, resolution: int = 512) -> PIL.Image:
+    def generate(self, img: PIL.Image, prompt: str, num_inference_steps=10, image_guidance_scale=1,
+                 resolution: int = 512) -> PIL.Image:
         self.load_model()
         width, height = img.size
         factor = resolution / max(width, height)
@@ -64,12 +65,12 @@ class Pix2Pix(DisposableModel):
         )
         self.pipe.to("cuda")
         self.pipe.enable_model_cpu_offload()
-        #self.pipe.unet.to(memory_format=torch.channels_last)
-        #self.pipe.unet = torch.compile(self.pipe.unet, mode="reduce-overhead", fullgraph=True)
+        # self.pipe.unet.to(memory_format=torch.channels_last)
+        # self.pipe.unet = torch.compile(self.pipe.unet, mode="reduce-overhead", fullgraph=True)
 
         if sampler_name in SCHEDULERS.keys():
             self.pipe.scheduler = SCHEDULERS[sampler_name]["class"].from_config(
                 self.pipe.config | SCHEDULERS[sampler_name]["config"]
             )
 
-        #self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)
+        # self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)

@@ -3,11 +3,10 @@ from typing import Optional
 from PIL import Image
 from diffusers import StableDiffusionUpscalePipeline, StableDiffusionLatentUpscalePipeline
 import torch
-import gc
 
 from transformers import BitsAndBytesConfig
 
-from utils import cuda_garbage_collection
+from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 
 
