@@ -5,16 +5,7 @@ from audiocraft.models import musicgen, audiogen
 from audiocraft.data.audio import audio_write
 from utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
-
-
-def torch_optimizer(func):
-    import torch
-    def wrapped(*args, **kwargs):
-        with torch.no_grad():
-            with torch.autocast("cuda"):
-                return func(*args, **kwargs)
-
-    return wrapped
+from utils._torch_utils import torch_optimizer
 
 
 class MusicGenerator(DisposableModel):

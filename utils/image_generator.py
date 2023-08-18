@@ -22,6 +22,7 @@ import gc
 import config
 from utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
+from utils._torch_utils import torch_optimizer
 
 DEFAULT_NEGATIVE_PROMPT = "portrait, 3d, low quality, worst quality, glitch, glitch art, glitch effect, deformed, bad anatomy, bad perspective, bad composition, bad lighting, bad shadin"
 
@@ -139,14 +140,6 @@ ModelNames = Literal["sd_xl_base", "sd_xl_refiner", "photon", "rundiffusionFX", 
 # https://huggingface.co/docs/diffusers/v0.19.3/en/api/pipelines/stable_diffusion/overview
 # https://huggingface.co/docs/diffusers/v0.19.3/en/api/pipelines/stable_diffusion/text2img
 
-def torch_optimizer(func):
-    def wrapped(*args, **kwargs):
-        with torch.no_grad():
-            with torch.autocast("cuda"):
-                return func(*args, **kwargs)
-
-    return wrapped
-
 
 class ImageGenerator(DisposableModel):
     model_name: ModelNames
@@ -165,7 +158,6 @@ class ImageGenerator(DisposableModel):
             use_lpw: bool = True,
             clip_model: Union[str, None] = "openai/clip-vit-large-patch14-336",
             clip_tokenizer: Union[str, None] = "openai/clip-vit-large-patch14-336",
-
             device: int = 0
     ):
         self._logger = logging.getLogger(__name__)
@@ -194,42 +186,37 @@ class ImageGenerator(DisposableModel):
         if model_family == ModelFamily.SD_XL_REFINER:
             image_size = 1024
 
-        variant = "bf16"
-        # variant="fp16"
-
+        args = {
+            "pretrained_model_link_or_path": safetensor_path,
+            "image_size": image_size,
+            "use_safetensors": True,
+            "safety_checker": StableDiffusionSafetyChecker if self.nsfw_check else None,
+            "requires_safety_checker": self.nsfw_check,
+        }
         if self.load_mode == LoadMode.LOW_VRAM or self.load_mode == LoadMode.GPU:
-            self.pipe = StableDiffusionPipeline.from_single_file(
-                safetensor_path,
-                torch_dtype=torch.float16,
-                image_size=image_size,
-                use_safetensors=True,
-                safety_checker=StableDiffusionSafetyChecker if self.nsfw_check else None,
-                requires_safety_checker=self.nsfw_check,
-                variant=variant
-            ).to(f"cuda:{self.device}")
-
-            if self.load_mode == LoadMode.LOW_VRAM:
-                self.pipe.enable_model_cpu_offload(gpu_id=self.device)
-
+            # args["variant"] = "fp16"
+            args["variant"] = "bf16"
         elif self.load_mode == LoadMode.LOAD_IN_4BIT or self.load_mode == LoadMode.LOAD_IN_8BIT:
-            quantization_config = BitsAndBytesConfig(
+            args["quantization_config"] = BitsAndBytesConfig(
                 load_in_8bit=self.load_mode == LoadMode.LOAD_IN_8BIT,
                 load_in_4bit=self.load_mode == LoadMode.LOAD_IN_4BIT,
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_compute_dtype=torch.bfloat16
             )
-            self.pipe = StableDiffusionPipeline.from_single_file(
-                safetensor_path,
-                image_size=image_size,
-                use_safetensors=True,
-                quantization_config=quantization_config,
-                device_map='auto',
-                # safety_checker=None if not self.nsfw_check else StableDiffusionSafetyChecker,
-                # requires_safety_checker=self.nsfw_check,
-            )
         else:
             raise ValueError(f"Invalid load mode {self.load_mode}")
+
+        if model_family == ModelFamily.SD_XL_BASE or model_family == ModelFamily.SD_XL_REFINER:
+            self.pipe = StableDiffusionXLPipeline.from_single_file(**args)
+        else:
+            self.pipe = StableDiffusionPipeline.from_single_file(**args)
+
+        if self.load_mode == LoadMode.LOW_VRAM or self.load_mode == LoadMode.GPU:
+            self.pipe = self.pipe.to(f"cuda:{self.device}")
+
+        if self.load_mode == LoadMode.LOW_VRAM:
+            self.pipe.enable_model_cpu_offload(gpu_id=self.device)
 
         self._default_tokenizer = self.pipe.tokenizer
         self._default_text_encoder = self.pipe.text_encoder
@@ -240,7 +227,7 @@ class ImageGenerator(DisposableModel):
         if self.clip_tokenizer is not None:
             self.pipe.tokenizer = CLIPTokenizer.from_pretrained(self.clip_tokenizer)
 
-        if self.use_lpw:
+        if self.use_lpw and model_family != ModelFamily.SD_XL_BASE and model_family != ModelFamily.SD_XL_REFINER:
             self.pipe = get_class_from_dynamic_module(
                 "lpw_stable_diffusion",
                 module_file="lpw_stable_diffusion.py"
@@ -250,8 +237,9 @@ class ImageGenerator(DisposableModel):
         if not self.use_lpw:  # compilation is not compatible with lpw
             self.pipe.unet = torch.compile(self.pipe.unet, mode="reduce-overhead", fullgraph=True)
 
-        ## if using torch < 2.0
-        ## pipe.enable_xformers_memory_efficient_attention()
+        # if using torch < 2.0
+        # pipe.enable_xformers_memory_efficient_attention()
+
         self.pipe.enable_attention_slicing()
         # self.pipe.enable_model_cpu_offload(gpu_id=self.device)
 
@@ -298,8 +286,7 @@ class ImageGenerator(DisposableModel):
                 width=1024,
                 generator=generator,
                 guidance_scale=guidance_scale,
-                num_inference_steps=num_inference_steps,
-                max_embeddings_multiples=5,
+                num_inference_steps=num_inference_steps
             ).images[0]
 
             if not skip_sd_xl_refiner:

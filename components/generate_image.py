@@ -9,7 +9,7 @@ def is_available():
 
 
 def gui(sysstats: SystemStats):
-    from utils.image_generator import ImageGenerator, MODELS, SCHEDULERS
+    from utils.image_generator import ImageGenerator, MODELS, SCHEDULERS, DEFAULT_NEGATIVE_PROMPT
 
     image_generator = ImageGenerator()
     sysstats.register_disposable_model(image_generator)
@@ -18,7 +18,7 @@ def gui(sysstats: SystemStats):
     with gr.Row():
         prompt_text = gr.Textbox(lines=5, label="Prompt")
     with gr.Row():
-        negative_prompt_text = gr.Textbox(lines=5, label="Negative prompt")
+        negative_prompt_text = gr.Textbox(lines=5, label="Negative prompt", value=DEFAULT_NEGATIVE_PROMPT)
 
     with gr.Row():
         sampler_name_select = gr.Dropdown(
@@ -27,7 +27,7 @@ def gui(sysstats: SystemStats):
         )
         num_inference_steps = gr.Slider(minimum=1, maximum=500, value=32, step=1, label="Inference Steps")
         image_guidance_scale = gr.Slider(minimum=0, maximum=200, value=7, step=0.5,
-                                                label="Image Guidance Scale")
+                                         label="Image Guidance Scale")
 
         seed_number = gr.Number(value=-1, label="Seed", precision=0)
 
@@ -37,8 +37,10 @@ def gui(sysstats: SystemStats):
     with gr.Row():
         image_viewer = gr.Image(type="pil", image_mode="RGB")
 
-    def generate_image(model_name, prompt_text: str, negative_prompt_text: str, sampler_name: str,
-                       num_inference_steps: float, image_guidance_scale: float, seed: int) -> 'PIL.Image':
+    def generate_image(
+            model_name, prompt_text: str, negative_prompt_text: str, sampler_name: str, num_inference_steps: float,
+            image_guidance_scale: float, seed: int
+    ) -> 'PIL.Image':
         if image_generator.model_name != model_name:
             image_generator.switch_model(model_name)
         if seed < 0:

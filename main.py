@@ -1,5 +1,5 @@
 # noinspection PyUnresolvedReferences
-import utils.force_load_env
+import utils._force_load_env
 from utils.system_stats import SystemStats
 import logging
 import os
