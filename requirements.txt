@@ -18,4 +18,8 @@
 # computer vision
 -r requirements-cv.txt
 
+# system informations
 -r requirements-sysinfo.txt
+
+# instruct pix2pix
+-r requirements-pix2pix.txt

@@ -1,6 +1,6 @@
-gradio==3.39.0
-gradio_client==0.3.0
+gradio==3.40.1
+gradio_client==0.4.0
 python-dotenv==1.0.0
-langchain==0.0.253
+langchain==0.0.267
 openai==0.27.8
-elevenlabs==0.2.22
+elevenlabs==0.2.24
