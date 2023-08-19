@@ -2,7 +2,7 @@ import gc
 from typing import Optional
 import PIL.Image
 import math
-from diffusers import StableDiffusionInstructPix2PixPipeline
+from diffusers import StableDiffusionInstructPix2PixPipeline, EulerAncestralDiscreteScheduler
 import config
 from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
@@ -14,10 +14,10 @@ import PIL.ImageOps
 
 
 class Pix2Pix(DisposableModel):
+    pipe: Optional[StableDiffusionInstructPix2PixPipeline] = None
 
     def __init__(self, model_id: str = "timbrooks/instruct-pix2pix"):
         self._model_id = model_id
-        self.pipe: Optional[StableDiffusionInstructPix2PixPipeline] = None
 
     @torch_optimizer
     def generate(self, img: PIL.Image, prompt: str, num_inference_steps=10, image_guidance_scale=1,
@@ -42,10 +42,6 @@ class Pix2Pix(DisposableModel):
         if self.pipe is None:
             if hasattr(self.pipe, "unet"):
                 del self.pipe.unet
-            if hasattr(self.pipe, "tokenizer"):
-                del self.pipe.tokenizer
-            if hasattr(self.pipe, "text_encoder"):
-                del self.pipe.text_encoder
             if hasattr(self.pipe, "scheduler"):
                 del self.pipe.scheduler
             del self.pipe
@@ -72,5 +68,5 @@ class Pix2Pix(DisposableModel):
             self.pipe.scheduler = SCHEDULERS[sampler_name]["class"].from_config(
                 self.pipe.config | SCHEDULERS[sampler_name]["config"]
             )
-
-        # self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)
+        else:
+            self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(self.pipe.scheduler.config)
