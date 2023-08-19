@@ -208,11 +208,12 @@ class ImageGenerator(DisposableModel):
             raise ValueError(f"Invalid load mode {self.load_mode}")
 
         if model_family == ModelFamily.SD_XL_BASE or model_family == ModelFamily.SD_XL_REFINER:
+            args["add_watermarker"] = False
             self.pipe = StableDiffusionXLPipeline.from_single_file(**args)
         else:
             self.pipe = StableDiffusionPipeline.from_single_file(**args)
 
-        if self.load_mode == LoadMode.LOW_VRAM or self.load_mode == LoadMode.GPU:
+        if self.load_mode == LoadMode.GPU:
             self.pipe = self.pipe.to(f"cuda:{self.device}")
 
         if self.load_mode == LoadMode.LOW_VRAM:
