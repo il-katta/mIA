@@ -19,6 +19,10 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
     handlers=[logging.StreamHandler()]
 )
+
+logging.getLogger("gradio").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
 os.makedirs(config.DATA_DIR, exist_ok=True)
 
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "false")
