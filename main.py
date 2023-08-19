@@ -9,7 +9,7 @@ import gradio as gr
 
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
-    generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, system_info
+    generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, random_audio, system_info
 )
 import config
 
@@ -70,6 +70,10 @@ with gr.Blocks() as demo:
     if safetensors_helper.is_available():
         with gr.Tab("Read safetensors metadata"):
             safetensors_helper.gui(sysstats=sysstats)
+
+    if random_audio.is_available():
+        with gr.Tab("Random audio Generator"):
+            random_audio.gui(sysstats=sysstats)
 
     with gr.Tab("Settings"):
         settings.gui(conf=conf, sysstats=sysstats)
