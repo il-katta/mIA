@@ -6,6 +6,7 @@ import torch
 
 from transformers import BitsAndBytesConfig
 
+import config
 from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 
@@ -69,7 +70,8 @@ class ImageUpscaler(DisposableModel):
                 self.model,
                 torch_dtype=torch.float16,
                 device_map=device_map,
-                quantization_config=quantization_config
+                quantization_config=quantization_config,
+                cache_dir=config.DATA_DIR / "huggingface"
             )
             if not load_in_8bit and not load_in_4bit:
                 self._upscaler = self._upscaler.to("cuda")

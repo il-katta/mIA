@@ -124,13 +124,20 @@ class TextToSpeech(DisposableModel):
             bnb_config = None
 
         if self._bark_processor is None:
-            self._bark_processor = AutoProcessor.from_pretrained("suno/bark")
+            self._bark_processor = AutoProcessor.from_pretrained(
+                "suno/bark",
+                cache_dir=config.DATA_DIR / "huggingface"
+            )
         if self._bark_model is None:
             if load_in_4bit:
-                self._bark_model = BarkModel.from_pretrained("suno/bark", quantization_config=bnb_config,
-                                                             device_map='auto')
+                self._bark_model = BarkModel.from_pretrained(
+                    "suno/bark",
+                    quantization_config=bnb_config,
+                    device_map='auto',
+                    cache_dir=config.DATA_DIR / "huggingface"
+                )
             else:
-                self._bark_model = BarkModel.from_pretrained("suno/bark").to(device)
+                self._bark_model = BarkModel.from_pretrained("suno/bark", cache_dir=config.DATA_DIR / "huggingface").to(device)
         # self._bark_model.generation_config.coarse_acoustics_config.temperature
         # self._bark_model.generation_config.fine_acoustics_config.temperature
         # self._bark_model.generation_config.semantic_config.temperature

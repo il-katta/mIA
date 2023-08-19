@@ -222,10 +222,10 @@ class ImageGenerator(DisposableModel):
         self._default_text_encoder = self.pipe.text_encoder
 
         if self.clip_model is not None:
-            self.pipe.text_encoder = CLIPTextModel.from_pretrained(self.clip_model).to(f"cuda:{self.device}")
+            self.pipe.text_encoder = CLIPTextModel.from_pretrained(self.clip_model, cache_dir=config.DATA_DIR / "huggingface").to(f"cuda:{self.device}")
 
         if self.clip_tokenizer is not None:
-            self.pipe.tokenizer = CLIPTokenizer.from_pretrained(self.clip_tokenizer)
+            self.pipe.tokenizer = CLIPTokenizer.from_pretrained(self.clip_tokenizer, cache_dir=config.DATA_DIR / "huggingface")
 
         if self.use_lpw and model_family != ModelFamily.SD_XL_BASE and model_family != ModelFamily.SD_XL_REFINER:
             self.pipe = get_class_from_dynamic_module(
