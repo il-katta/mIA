@@ -4,7 +4,7 @@ import gc
 
 import pandas as pd
 
-from utils import package_exists
+from utils import package_exists, cuda_is_available
 from utils._interfaces import DisposableModel
 
 if package_exists("torch"):
@@ -14,8 +14,6 @@ else:
 
 if package_exists("nvidia_smi"):
     import nvidia_smi
-
-
 else:
     nvidia_smi = None
 
@@ -25,10 +23,12 @@ class SystemStats(object):
     _gpu_id: int = None
     _torch_device: Optional[torch.cuda.device] = None
     _history: pd.DataFrame = pd.DataFrame
+    _enabled = False
 
     def __init__(self, gpu_id=0, store_history=False):
         self._store_history = store_history
-        if nvidia_smi:
+        self._enabled = cuda_is_available()
+        if self._enabled:
             nvidia_smi.nvmlInit()
         self.change_gpu(gpu_id)
         if self._store_history:
@@ -80,6 +80,8 @@ class SystemStats(object):
             self._torch_device = None
 
     def change_gpu(self, gpu_id):
+        if not self._enabled:
+            return
         if nvidia_smi:
             self._gpu_handle = self._get_gpu_handle(gpu_id)
         if self._gpu_id != gpu_id:
@@ -94,6 +96,8 @@ class SystemStats(object):
             return nvidia_smi.nvmlDeviceGetHandleByIndex(gpu_id)
 
     def get_gpu_name(self, gpu_id: Optional[int] = None) -> Optional[str]:
+        if not self._enabled:
+            return None
         if nvidia_smi:
             return nvidia_smi.nvmlDeviceGetName(self._get_gpu_handle(gpu_id)).decode('utf-8')
         if torch:
@@ -101,6 +105,8 @@ class SystemStats(object):
         return None
 
     def get_gpu_temperature(self, gpu_id: Optional[int] = None) -> Optional[int]:
+        if not self._enabled:
+            return None
         if nvidia_smi:
             value = nvidia_smi.nvmlDeviceGetTemperature(self._get_gpu_handle(gpu_id), 0)
             self._add_to_history(gpu_id, gpu_temperature=value)
@@ -111,6 +117,8 @@ class SystemStats(object):
         return self._get_history(["gpu_temperature"], gpu_id)
 
     def get_gpu_fan_speed(self, gpu_id: Optional[int] = None) -> Optional[int]:
+        if not self._enabled:
+            return None
         if nvidia_smi:
             value = nvidia_smi.nvmlDeviceGetFanSpeed(self._get_gpu_handle(gpu_id))
             self._add_to_history(gpu_id, gpu_fan_speed=value)
@@ -121,6 +129,8 @@ class SystemStats(object):
         return self._get_history(["gpu_fan_speed"], gpu_id)
 
     def get_power_usage(self, gpu_id: Optional[int] = None) -> Tuple[int, int]:
+        if not self._enabled:
+            return 0, 0
         if nvidia_smi:
             actual = int(nvidia_smi.nvmlDeviceGetPowerUsage(self._get_gpu_handle(gpu_id)) / 1000)
             total = int(nvidia_smi.nvmlDeviceGetPowerManagementLimit(self._get_gpu_handle(gpu_id)) / 1000)
@@ -132,6 +142,8 @@ class SystemStats(object):
         return self._get_history(["power_usage_actual", "power_usage_total"], gpu_id)
 
     def get_gpu_ram_usage(self, gpu_id: Optional[int] = None) -> Tuple[int, int]:
+        if not self._enabled:
+            return 0, 0
         if nvidia_smi:
             mem_info = nvidia_smi.nvmlDeviceGetMemoryInfo(self._get_gpu_handle(gpu_id))
             allocated = mem_info.used
@@ -164,22 +176,33 @@ class SystemStats(object):
             torch.cuda.ipc_collect()
 
     def get_processes(self, gpu_id: Optional[int] = None):
+        if not self._enabled or not nvidia_smi:
+            return []
         processes = nvidia_smi.nvmlDeviceGetGraphicsRunningProcesses(self._get_gpu_handle(gpu_id))
         processes.sort(
             key=lambda p: p.usedGpuMemory or 0,
             reverse=True
         )
+
+        def get_process_name(pid: int) -> str:
+            import pynvml
+            try:
+                return nvidia_smi.nvmlSystemGetProcessName(pid).decode('utf-8')
+            except pynvml.NVMLError_NotFound:  # in docker container the above function fails
+                return ""
+
         return [
             {
                 "pid": p.pid,
-                "process_name": nvidia_smi.nvmlSystemGetProcessName(p.pid).decode('utf-8'),
+                "process_name": get_process_name(p.pid),
                 "used_gpu_memory": p.usedGpuMemory,
             }
             for p in processes
         ]
 
-    @staticmethod
-    def get_gpu_count() -> int:
+    def get_gpu_count(self) -> int:
+        if not self._enabled:
+            return 0
         if nvidia_smi:
             return nvidia_smi.nvmlDeviceGetCount()
         if torch:

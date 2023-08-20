@@ -18,3 +18,16 @@ def is_debug_mode_enabled() -> bool:
     if gettrace is None:
         return False
     return bool(gettrace())
+
+
+def cuda_is_available():
+    if package_exists("torch"):
+        return __import__("torch").cuda.is_available()
+    elif package_exists("nvidia_smi"):
+        try:
+            __import__("nvidia_smi").nvmlInit()
+            return True
+        except:
+            return False
+    else:
+        return False

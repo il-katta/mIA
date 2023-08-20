@@ -1,11 +1,11 @@
-from utils import package_exists
+from utils import package_exists, cuda_is_available
 from utils.system_stats import SystemStats
 import gradio as gr
 import PIL.Image
 
 
 def is_available():
-    return package_exists("diffusers") and package_exists("torch")
+    return package_exists("diffusers") and package_exists("torch") and cuda_is_available()
 
 
 def gui(sysstats: SystemStats):

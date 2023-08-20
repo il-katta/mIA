@@ -1,5 +1,7 @@
 import gc
 
+from utils import cuda_is_available, package_exists
+
 
 def torch_optimizer(func):
     import torch
@@ -13,9 +15,9 @@ def torch_optimizer(func):
 
 
 def cuda_garbage_collection():
-    import torch
     gc.collect()
-    if torch.cuda.is_available():
+    if cuda_is_available() and package_exists("torch"):
+        import torch
         torch.cuda.empty_cache()
         torch.cuda.ipc_collect()
         with torch.cuda.device("cuda"):

@@ -54,6 +54,28 @@ dev mode ( automatic reload on code change )
 ./.venv/bin/gradio main.py
 ```
 
+## Run with docker
+
+### Run pre-built image
+
+```shell
+mkdir -p data
+docker run \
+  -p 1988:1988 \
+  --env-file .env \
+  --name mia \
+  --user $(id -u):$(id -g) \
+  -v "$(pwd)/data:/app/data" \
+  --gpus all \
+  ghcr.io/il-katta/mia:latest
+```
+
+### Build and run image
+
+```shell
+docker-compose up --pull always --build
+```
+
 ## TODO
 * [WIP] Zero-Shot Object Detection with Grounding DINO
 * [WIP] aggiungere https://github.com/haoheliu/audioldm2
@@ -70,4 +92,7 @@ dev mode ( automatic reload on code change )
 * valutare il progetto https://github.com/coqui-ai/TTS per TTS
 * aggiungere pix2pix https://huggingface.co/timbrooks/instruct-pix2pix
 * aggiungere https://huggingface.co/DeepFloyd/IF-I-XL-v1.0 con https://github.com/LuChengTHU/dpm-solver/blob/main/README.md
-* 
+* aggiungere il supporto a https://modal.com/ 
+* [audio-diffusion](https://github.com/teticio/audio-diffusion) ( [usage with pipelines](https://huggingface.co/docs/diffusers/main/en/api/pipelines/audio_diffusion) ) 
+* [dance diffusion](https://huggingface.co/docs/diffusers/main/en/api/pipelines/dance_diffusion)
+* [kandinsky v2.2](https://huggingface.co/docs/diffusers/main/en/api/pipelines/kandinsky_v22)

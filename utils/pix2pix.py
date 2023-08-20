@@ -7,6 +7,7 @@ import config
 from utils._torch_utils import cuda_garbage_collection
 from utils._interfaces import DisposableModel
 import torch
+import logging
 
 from utils.image_generator import SCHEDULERS
 from utils._torch_utils import torch_optimizer
@@ -39,7 +40,8 @@ class Pix2Pix(DisposableModel):
         return images[0]
 
     def unload_model(self):
-        if self.pipe is None:
+        if self.pipe is not None:
+            logging.info("Unloading pix2pix model")
             if hasattr(self.pipe, "unet"):
                 del self.pipe.unet
             if hasattr(self.pipe, "scheduler"):

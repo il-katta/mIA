@@ -1,11 +1,11 @@
 import gradio as gr
 
-from utils import package_exists
+from utils import package_exists, cuda_is_available
 from utils.system_stats import SystemStats
 
 
 def is_available():
-    return package_exists("torch") or package_exists("nvidia_smi")
+    return (package_exists("torch") or package_exists("nvidia_smi")) and cuda_is_available()
 
 
 def gui(sysstats: SystemStats):

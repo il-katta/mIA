@@ -23,3 +23,6 @@
 
 # instruct pix2pix
 -r requirements-pix2pix.txt
+
+# audio generation
+-r requirements-audiogen.txt

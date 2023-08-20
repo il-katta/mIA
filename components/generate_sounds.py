@@ -1,11 +1,11 @@
 import gradio as gr
 
-from utils import package_exists
+from utils import package_exists, cuda_is_available
 from utils.system_stats import SystemStats
 
 
 def is_available():
-    return package_exists("torch") and package_exists("audiocraft")
+    return package_exists("torch") and package_exists("audiocraft") and cuda_is_available()
 
 
 def gui(sysstats: SystemStats):
