@@ -70,7 +70,7 @@ jobs:
       - name: Set image tag
         run: |
           # echo "IMAGE_TAGS=${{ steps.meta.outputs.tags }}" >> $GITHUB_ENV
-          echo "IMAGE_TAGS=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_ENV
+          echo "IMAGE_TAGS=$( echo "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" | tr '[:upper:]' '[:lower:]' )"  >> $GITHUB_ENV
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action

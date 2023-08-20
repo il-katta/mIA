@@ -1,5 +1,7 @@
 # mIA
 
+[![Docker](https://github.com/il-katta/mIA/actions/workflows/docker-build.yml/badge.svg)](https://github.com/il-katta/mIA/actions/workflows/docker-build.yml)
+
 ## Features
 
 * chatbot: openai chatbot mainly build with [langchain](https://www.langchain.com/) with 
