@@ -52,6 +52,7 @@ def gui(sysstats: SystemStats):
     with gr.Row():
         image_out = gr.Image(label="Output Image", type="pil", image_mode="RGB", interactive=False)
 
+    @cuda_garbage_collection
     def upscale(
             image,
             model_name: str,
@@ -66,25 +67,23 @@ def gui(sysstats: SystemStats):
             load_in_4bit=False,
             load_in_8bit=False
     ):
-        try:
-            image_upscaler.load_model(
-                enable_attention_slicing=enable_attention_slicing,
-                enable_model_cpu_offload=enable_model_cpu_offload,
-                enable_xformers_memory_efficient_attention=enable_xformers_memory_efficient_attention,
-                load_in_4bit=load_in_4bit,
-                load_in_8bit=load_in_8bit
-            )
-            image = image_upscaler.upscale(
-                image,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                noise_level=noise_level
-            )
-            return image
-        finally:
-            cuda_garbage_collection()
+        image_upscaler.load_model(
+            enable_attention_slicing=enable_attention_slicing,
+            enable_model_cpu_offload=enable_model_cpu_offload,
+            enable_xformers_memory_efficient_attention=enable_xformers_memory_efficient_attention,
+            load_in_4bit=load_in_4bit,
+            load_in_8bit=load_in_8bit
+        )
+        image = image_upscaler.upscale(
+            image,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            noise_level=noise_level
+        )
+        return image
+
 
     execute_button.click(
         upscale,

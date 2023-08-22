@@ -168,6 +168,7 @@ class TextToSpeech(DisposableModel):
         files.sort()
         return files
 
+    @cuda_garbage_collection
     def unload_model(self):
         if self._bark_processor is not None:
             del self._bark_processor
@@ -175,4 +176,3 @@ class TextToSpeech(DisposableModel):
         if self._bark_model is not None:
             del self._bark_model
             self._bark_model = None
-        cuda_garbage_collection()

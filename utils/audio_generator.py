@@ -43,11 +43,11 @@ class AudioGenerator(DisposableModel, AudioDiffusion):
                 cache_dir=config.DATA_DIR / "huggingface"
             ).to("cuda")
 
+    @cuda_garbage_collection
     def unload_model(self):
         if self.pipe:
             logging.info(f"Unloading model {self.model_name}")
             del self.pipe
-            cuda_garbage_collection()
             self.pipe = None
 
     @torch_optimizer

@@ -39,6 +39,7 @@ class Pix2Pix(DisposableModel):
         ).images
         return images[0]
 
+    @cuda_garbage_collection
     def unload_model(self):
         if self.pipe is not None:
             logging.info("Unloading pix2pix model")
@@ -49,7 +50,6 @@ class Pix2Pix(DisposableModel):
             del self.pipe
             self.pipe = None
             gc.collect()
-            cuda_garbage_collection()
 
     def load_model(self, sampler_name="Euler a"):
         if self.pipe is not None:

@@ -85,12 +85,11 @@ class ImageUpscaler(DisposableModel):
             if enable_xformers_memory_efficient_attention:
                 self._upscaler.enable_xformers_memory_efficient_attention()
 
+    @cuda_garbage_collection
     def unload_model(self):
         if self._upscaler is not None:
             del self._upscaler
             self._upscaler = None
-
-        cuda_garbage_collection()
 
     def __enter__(self):
         return self

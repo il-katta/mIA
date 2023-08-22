@@ -29,10 +29,10 @@ class MusicGenerator(DisposableModel):
             else:
                 self.model = audiogen.AudioGen.get_pretrained(model_name)
 
+    @cuda_garbage_collection
     def unload_model(self):
         if self.model:
             del self.model
-            cuda_garbage_collection()
             self.model = None
 
 
