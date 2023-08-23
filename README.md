@@ -79,6 +79,8 @@ docker-compose up --pull always --build
 ## TODO
 * [WIP] Zero-Shot Object Detection with Grounding DINO
 * [WIP] aggiungere https://github.com/haoheliu/audioldm2
+* https://github.com/IceClear/StableSR
+* https://github.com/jantic/DeOldify
 * riprisitinare la funzionalità dialogo con il bot ( ora il LLM non sembra avere visibilità dello storico della conversazione )
 * valutare di aggiungere https://github.com/photosynthesis-team/piq alla generazione delle immagini per decidere quali scartare ?
 * aggiungere il modulo per utilizzare roop https://github.com/s0md3v/roop
@@ -96,3 +98,4 @@ docker-compose up --pull always --build
 * [audio-diffusion](https://github.com/teticio/audio-diffusion) ( [usage with pipelines](https://huggingface.co/docs/diffusers/main/en/api/pipelines/audio_diffusion) ) 
 * [dance diffusion](https://huggingface.co/docs/diffusers/main/en/api/pipelines/dance_diffusion)
 * [kandinsky v2.2](https://huggingface.co/docs/diffusers/main/en/api/pipelines/kandinsky_v22)
+* https://github.com/MushroomFleet/Deforum-Sequence-Tools
