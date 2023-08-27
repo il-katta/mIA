@@ -52,4 +52,4 @@ EXPOSE 1988
 
 USER app
 
-ENTRYPOINT ["python", "/app/main.py"]
+ENTRYPOINT ["accelerate", "launch", "--config_file", "/app/accelerate_config.yml", "/app/main.py"]
