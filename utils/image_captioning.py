@@ -10,9 +10,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
+from tqdm import tqdm
 from transformers import BitsAndBytesConfig, BlipProcessor, BlipForConditionalGeneration, ProcessorMixin, \
     PreTrainedModel, Blip2ForConditionalGeneration, Blip2Processor, AutoModelForCausalLM, AutoProcessor
-from tqdm import tqdm
+
 import config
 from utils._interfaces import DisposableModel
 from utils._torch_utils import cuda_garbage_collection, torch_optimizer
@@ -109,16 +110,12 @@ class _Captioning(_Tagger):
         self.processor = self.ProcessorClass.from_pretrained(
             self.model_name,
             cache_dir=self.model_path,
-            quantization_config=self.quantization_config,
-            device_map=self.get_device_map(),
-            low_cpu_mem_usage=self.quantization_config is not None
+            **self.get_load_parameters()
         )
         self.model = self.ModelClass.from_pretrained(
             self.model_name,
             cache_dir=self.model_path,
-            quantization_config=self.quantization_config,
-            device_map=self.get_device_map(),
-            low_cpu_mem_usage=self.quantization_config is not None
+            **self.get_load_parameters()
         )
         if self.quantization_config is None:
             self.model = self.model.to(self.device)
@@ -143,8 +140,15 @@ class _Captioning(_Tagger):
             ids = self.model.generate(**inputs)
             return self.processor.batch_decode(ids, skip_special_tokens=True)
 
-    def get_device_map(self):
-        return "auto"
+    def get_load_parameters(self) -> Dict[str, Any]:
+        if self.quantization_config is not None:
+            return {
+                "quantization_config": self.quantization_config,
+                "device_map": "auto",
+                "low_cpu_mem_usage": self.quantization_config is not None
+            }
+        else:
+            return {}
 
 
 class BLIPLargeCaptioning(_Captioning):
@@ -153,32 +157,37 @@ class BLIPLargeCaptioning(_Captioning):
                  load_in_4bit: bool = True):
         super().__init__(BlipProcessor, BlipForConditionalGeneration, model_name, device, load_in_4bit)
 
-    def get_device_map(self):
-        return None
+    def get_load_parameters(self) -> Dict[str, Any]:
+        params = super().get_load_parameters()
+        params["device_map"] = None
+        return params
 
 
 class BLIP2Captioning(_Captioning):
     def __init__(self, model_name: str, device: str = "cuda", load_in_4bit: bool = True):
         super().__init__(Blip2Processor, Blip2ForConditionalGeneration, model_name, device, load_in_4bit)
 
-    def get_device_map(self):
+    def get_load_parameters(self) -> Dict[str, Any]:
+        params = super().get_load_parameters()
         # TODO: fix this (??)
         if self.device.type == "cuda":
             if self.device.index is not None:
-                return f"cuda:{self.device.index}"
+                params['device_map'] = f"cuda:{self.device.index}"
             else:
-                return "cuda:0"
+                params['device_map'] =  "cuda:0"
         else:
-            return self.device.type
-
+            params['device_map'] =  self.device.type
+        return params
 
 class GITLargeCaptioning(_Captioning):
 
     def __init__(self, model_name: str = "microsoft/git-large-coco", device: str = "cuda", load_in_4bit: bool = True):
         super().__init__(AutoProcessor, AutoModelForCausalLM, model_name, device, load_in_4bit)
 
-    def get_device_map(self):
-        return None
+    def get_load_parameters(self) -> Dict[str, Any]:
+        params = super().get_load_parameters()
+        params["device_map"] = None
+        return params
 
 
 def resize_and_fill(image: Image.Image, size: Tuple[int, int]):
