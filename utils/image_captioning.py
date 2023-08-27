@@ -179,6 +179,7 @@ class BLIP2Captioning(_Captioning):
             params['device_map'] =  self.device.type
         return params
 
+
 class GITLargeCaptioning(_Captioning):
 
     def __init__(self, model_name: str = "microsoft/git-large-coco", device: str = "cuda", load_in_4bit: bool = True):
@@ -264,7 +265,7 @@ class WaifuDiffusionTagger(_Tagger):
                 providers = ["CPUExecutionProvider"]
 
             self.model = ort.InferenceSession(str(path_model), providers=providers)
-            self.tags = pd.read_csv(tags_path)
+            self.tags = pd.read_csv(tags_path)["name"].tolist()
 
     @cuda_garbage_collection
     def unload_model(self):
