@@ -26,3 +26,6 @@
 
 # audio generation
 -r requirements-audiogen.txt
+
+# image tagger
+-r requirements-img-tagger.txt

@@ -9,7 +9,8 @@ import gradio as gr
 
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
-    generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, random_audio, system_info
+    generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, random_audio, image_tagger,
+    system_info
 )
 import config
 
@@ -107,6 +108,13 @@ with gr.Blocks() as demo:
             random_audio.gui(sysstats=sysstats)
     else:
         logging.warning("Random audio Generator is not available")
+
+    if image_tagger.is_available():
+        logging.info("Image Tagger is available")
+        with gr.Tab("Image Tagger"):
+            image_tagger.gui(sysstats=sysstats)
+    else:
+        logging.warning("Image Tagger is not available")
 
     with gr.Tab("Settings"):
         settings.gui(conf=conf, sysstats=sysstats)

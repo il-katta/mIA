@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import Optional, Iterable, Iterator, Any
 import openai
 import gradio as gr
-from gradio.components import IOComponent
-from gradio_client.serializing import SimpleSerializable
+
 
 __all__ = [
     "DATA_DIR",
