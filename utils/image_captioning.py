@@ -71,7 +71,7 @@ class _Captioning(_Tagger):
     processor: Optional[Union[Blip2Processor, BlipProcessor, Any]]
     model: Optional[PreTrainedModel]
     device: torch.device
-    quantization_config: Optional[BitsAndBytesConfig]
+    load_in_4bit: bool
 
     def __init__(
             self,
@@ -87,15 +87,7 @@ class _Captioning(_Tagger):
         self.processor = None
         self.model = None
         self.device: torch.device = torch.device(device)
-        if load_in_4bit:
-            self.quantization_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16
-            )
-        else:
-            self.quantization_config = None
+        self.load_in_4bit = load_in_4bit
 
     def load_model(self, model_name: Optional[str] = None):
         if model_name is None and self.model is not None and self.processor is not None:
@@ -117,7 +109,7 @@ class _Captioning(_Tagger):
             cache_dir=self.model_path,
             **self.get_load_parameters()
         )
-        if self.quantization_config is None:
+        if not self.load_in_4bit:
             self.model = self.model.to(self.device)
 
     @cuda_garbage_collection
@@ -131,21 +123,30 @@ class _Captioning(_Tagger):
         self.processor = None
 
     @torch_optimizer
-    def predict(self, image: Image.Image):
+    def predict(self, image: Image.Image, processor_arguments: Optional[Dict[str, Any]] = None):
         self.load_model()
         if self.model is None or self.processor is None:
             return ""
         with torch.no_grad(), torch.autocast(self.device.type):
-            inputs = self.processor(images=image, return_tensors="pt").to(self.device)
+            if processor_arguments is None:
+                processor_arguments = {}
+            inputs = self.processor(images=image, return_tensors="pt", **processor_arguments).to(self.device)
             ids = self.model.generate(**inputs)
-            return self.processor.batch_decode(ids, skip_special_tokens=True)
+            result = self.processor.batch_decode(ids, skip_special_tokens=True)
+            logging.info(f"Predicted {result}")
+            return result
 
     def get_load_parameters(self) -> Dict[str, Any]:
-        if self.quantization_config is not None:
+        if self.load_in_4bit:
             return {
-                "quantization_config": self.quantization_config,
+                "quantization_config": BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16
+                ),
                 "device_map": "auto",
-                "low_cpu_mem_usage": self.quantization_config is not None
+                "low_cpu_mem_usage": self.load_in_4bit
             }
         else:
             return {}
@@ -170,14 +171,35 @@ class BLIP2Captioning(_Captioning):
     def get_load_parameters(self) -> Dict[str, Any]:
         params = super().get_load_parameters()
         # TODO: fix this (??)
-        if self.device.type == "cuda":
-            if self.device.index is not None:
-                params['device_map'] = f"cuda:{self.device.index}"
+        if self.load_in_4bit:
+            if self.device.type == "cuda":
+                if self.device.index is not None:
+                    params['device_map'] = f"cuda:{self.device.index}"
+                else:
+                    params['device_map'] = "cuda:0"
             else:
-                params['device_map'] =  "cuda:0"
+                params['device_map'] = self.device.type
         else:
-            params['device_map'] =  self.device.type
+            params['torch_dtype'] = torch.float16
         return params
+
+    @torch_optimizer
+    def predict(self, image: Image.Image, processor_arguments: Optional[Dict[str, Any]] = None):
+        self.load_model()
+        if self.model is None or self.processor is None:
+            return ""
+        with torch.no_grad(), torch.autocast(self.device.type):
+            if processor_arguments is None:
+                processor_arguments = {}
+            inputs = self.processor(
+                images=image,
+                return_tensors="pt",
+                text="the image of", **processor_arguments
+            ).to(self.device, torch.float16)
+            output = self.model.generate(**inputs)
+            result = self.processor.decode(output[0], skip_special_tokens=True)
+            logging.info(f"Predicted {result}")
+            return result
 
 
 class GITLargeCaptioning(_Captioning):
