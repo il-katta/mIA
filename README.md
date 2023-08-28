@@ -79,7 +79,7 @@ docker-compose up --pull always --build
 ## TODO
 * [WIP] Zero-Shot Object Detection with Grounding DINO
 * [WIP] aggiungere https://github.com/haoheliu/audioldm2
-* [WIP] Image Tagger: fixare WaifuDiffusionTagger 
+* [WIP] Image Tagger: fixare BLIP2Captioning 
 * https://github.com/IceClear/StableSR
 * https://github.com/jantic/DeOldify
 * riprisitinare la funzionalità dialogo con il bot ( ora il LLM non sembra avere visibilità dello storico della conversazione )

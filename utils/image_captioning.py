@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, Type, Union, Any, Tuple, List, Dict, Callable
+from typing import Optional, Type, Union, Any, Tuple, List, Dict, Callable, Set
 
 import math
 import numpy as np
@@ -1150,42 +1150,6 @@ class ImageCaptioning(DisposableModel):
             additional_tags_postfix: str = "",
             callback_after_model_unload: Optional[Callable[[_Tagger], None]] = None
     ):
-        input_directory_path = Path(input_directory_path)
-        if not input_directory_path.exists():
-            return "[Directory does not exist]"
-        if not input_directory_path.is_dir():
-            return "[Path is not a directory]"
-
-        logging.info("copy all the images to target directory")
-        output_directory_path = Path(output_directory_path)
-        if not output_directory_path.exists():
-            output_directory_path.mkdir(parents=True, exist_ok=True)
-        images: List[Tuple[str, Image.Image]] = []
-        for path in input_directory_path.iterdir():
-            if self.is_image(path):
-                images.append((
-                    path.name,
-                    self.copy_image_to_directory(path, output_directory_path, resize, resize_size, overwrite)
-                ))
-
-        predictions: Dict[str, set] = {}
-        for model in tqdm([model for model in self.models if model.full_name in models_choose], "models"):
-            # with model:
-            try:
-                model.load_model()
-                for name, image in tqdm(images, f"tagging images with {model}"):
-                    try:
-                        if name not in predictions.keys():
-                            predictions[name] = set()
-                        for tag in self.filter_tags(model.predict(image)):
-                            predictions[name].add(tag)
-                    except Exception as e:
-                        logging.error(f"Failed to predict {name}")
-                        logging.exception(e)
-            finally:
-                model.unload_model()
-                if callback_after_model_unload is not None:
-                    callback_after_model_unload(model)
 
         def _str_to_list(string: str) -> List[str]:
             if len(string.strip()) > 0:
@@ -1199,15 +1163,59 @@ class ImageCaptioning(DisposableModel):
                 result = result.union(s)
             return list(result)
 
-        additional_tags_prefix = _str_to_list(additional_tags_prefix)
-        additional_tags_postfix = _str_to_list(additional_tags_postfix)
+        input_directory_path = Path(input_directory_path)
+        if not input_directory_path.exists():
+            return "[Directory does not exist]"
+        if not input_directory_path.is_dir():
+            return "[Path is not a directory]"
 
-        for filename, tags in tqdm(predictions.items(), "writing tags"):
-            tag_file = output_directory_path / Path(filename).with_suffix(".txt")
-            if tag_file.exists() and keep_existing_tags:
-                additional_tags_prefix += _str_to_list(tag_file.read_text("utf-8").strip())
-            final_tags = _join_sets(additional_tags_prefix, tags, additional_tags_postfix)
-            tag_file.write_text(", ".join(final_tags), "utf-8")
+        logging.info("copy all the images to target directory")
+        output_directory_path = Path(output_directory_path)
+        if not output_directory_path.exists():
+            output_directory_path.mkdir(parents=True, exist_ok=True)
+        images: List[Tuple[str, Image.Image, Set[str]]] = []
+        for path in input_directory_path.iterdir():
+            if self.is_image(path):
+                tag_file = output_directory_path / path.with_suffix(".txt")
+                if tag_file.exists() and keep_existing_tags:
+                    existing_tags = _str_to_list(tag_file.read_text("utf-8").strip())
+                else:
+                    existing_tags = []
+                images.append((
+                    path.name,
+                    self.copy_image_to_directory(path, output_directory_path, resize, resize_size, overwrite),
+                    set(existing_tags)
+                ))
+
+        predictions: Dict[str, Set[str]] = {}
+        additional_tags_prefix: List[str] = _str_to_list(additional_tags_prefix)
+        additional_tags_postfix: List[str] = _str_to_list(additional_tags_postfix)
+
+        for model in tqdm([model for model in self.models if model.full_name in models_choose], "models"):
+            # with model:
+            try:
+                model.load_model()
+                for name, image, existing_tags in tqdm(images, f"tagging images with {model}"):
+                    try:
+                        if name not in predictions.keys():
+                            predictions[name] = existing_tags
+                        for tag in self.filter_tags(model.predict(image)):
+                            predictions[name].add(tag)
+                    except Exception as e:
+                        logging.error(f"Failed to predict {name}")
+                        logging.exception(e)
+            finally:
+                model.unload_model()
+                if callback_after_model_unload is not None:
+                    callback_after_model_unload(model)
+
+            for filename, tags in tqdm(predictions.items(), "writing tags"):
+                tag_file = output_directory_path / Path(filename).with_suffix(".txt")
+                # remove items present in additional_tags_prefix and additional_tags_postfix from tags
+                tags = set(tags).difference(set(additional_tags_prefix)).difference(set(additional_tags_postfix))
+                # concat all tags
+                final_tags: List[str] = additional_tags_prefix + list(tags) + additional_tags_postfix
+                tag_file.write_text(", ".join(final_tags), "utf-8")
 
     @staticmethod
     def clean_tag(tag: Optional[str]) -> str | None:
