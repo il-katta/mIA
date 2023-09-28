@@ -1174,7 +1174,7 @@ class ImageCaptioning(DisposableModel):
         if not output_directory_path.exists():
             output_directory_path.mkdir(parents=True, exist_ok=True)
         images: List[Tuple[str, Image.Image, Set[str]]] = []
-        for path in input_directory_path.iterdir():
+        for path in tqdm(input_directory_path.iterdir(), "copy/resize all the images to target directory"):
             if self.is_image(path):
                 tag_file = output_directory_path / path.with_suffix(".txt")
                 if tag_file.exists() and keep_existing_tags:
@@ -1260,8 +1260,10 @@ class ImageCaptioning(DisposableModel):
         return filepath.suffix.lower() in [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff"]
 
     @classmethod
-    def copy_image_to_directory(cls, image_path: Path, target_dir: Path, resize: bool = True, resize_size: int = 512,
-                                overwrite: bool = False) -> Image.Image:
+    def copy_image_to_directory(
+            cls, image_path: Path, target_dir: Path, resize: bool = True, resize_size: int = 512,
+            overwrite: bool = False
+    ) -> Image.Image:
         target_path = target_dir / image_path.name
         if not target_path.exists() or overwrite:
             image = Image.open(image_path).convert("RGB")
