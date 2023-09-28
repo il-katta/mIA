@@ -102,6 +102,7 @@ def gui(sysstats: SystemStats):
             every=update_rate,
             interactive=False,
             container=False,
+            width=1024
         )
 
         gpu_temperature_html = gr.HTML(
@@ -119,6 +120,7 @@ def gui(sysstats: SystemStats):
             every=update_rate,
             interactive=False,
             container=False,
+            width=1024
         )
 
         gpu_fan_speed_html = gr.HTML(
@@ -136,6 +138,7 @@ def gui(sysstats: SystemStats):
             every=update_rate,
             interactive=False,
             container=False,
+            width=1024
         )
 
     with gr.Tab("GPU Processes"):
