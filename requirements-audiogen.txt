@@ -1,6 +1,6 @@
 # dependencies for audiocraft
 torch>=2.0
-git+https://github.com/facebookresearch/audiocraft#egg=audiocraft
+#git+https://github.com/facebookresearch/audiocraft#egg=audiocraft
 
 # dependencies for stable diffusion
 diffusers
