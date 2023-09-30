@@ -5,7 +5,13 @@ from utils.system_stats import SystemStats
 
 
 def is_available():
-    return package_exists("torch") and package_exists("audiocraft") and cuda_is_available()
+    if package_exists("torch") and package_exists("audiocraft") and cuda_is_available():
+        try:
+            from audiocraft.models import musicgen
+            return True
+        except ImportError:
+            return False
+    return False
 
 
 def gui(sysstats: SystemStats):
@@ -34,8 +40,9 @@ def gui(sysstats: SystemStats):
     with gr.Row():
         model_radio = gr.Radio(
             [
-                "facebook/musicgen-melody", "facebook/musicgen-medium", "facebook/musicgen-small", "facebook/musicgen-large"
-             ],
+                "facebook/musicgen-melody", "facebook/musicgen-medium", "facebook/musicgen-small",
+                "facebook/musicgen-large"
+            ],
             label="Model", value="facebook/musicgen-large", interactive=True
         )
     with gr.Row():

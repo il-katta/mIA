@@ -5,7 +5,13 @@ from utils.system_stats import SystemStats
 
 
 def is_available():
-    return package_exists("torch") and package_exists("audiocraft") and cuda_is_available()
+    if package_exists("torch") and package_exists("audiocraft") and cuda_is_available():
+        try:
+            from audiocraft.models import audiogen
+            return True
+        except ImportError:
+            return False
+    return False
 
 
 def gui(sysstats: SystemStats):
