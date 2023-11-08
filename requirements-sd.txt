@@ -3,7 +3,7 @@ git+https://github.com/huggingface/diffusers#egg=diffusers
 omegaconf==2.3.0
 torch==2.0.1
 transformers==4.33.3
-Pillow==10.0.1
+Pillow==10.1.0
 
 # sdxl refiner
 #invisible_watermark
