@@ -24,7 +24,7 @@ class OnStream(BaseCallbackHandler):
             self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
     ) -> None:
         """Run when LLM starts running."""
-        self._logger.debug(f"LLM started with prompts: {json.dumps(prompts)} ( serialized: {json.dumps(serialized)} )")
+        self._logger.debug(f"LLM started with prompts: {prompts} ( serialized: {serialized} )")
 
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
@@ -47,11 +47,11 @@ class OnStream(BaseCallbackHandler):
             self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
     ) -> None:
         """Run when chain starts running."""
-        self._logger.debug(f"Chain started with inputs: {json.dumps(inputs)} ( serialized: {json.dumps(serialized)} )")
+        self._logger.debug(f"Chain started with inputs: {inputs} ( serialized: {serialized} )")
 
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
         """Run when chain ends running."""
-        self._logger.debug(f"Chain ended with outputs: {json.dumps(outputs)}")
+        self._logger.debug(f"Chain ended with outputs: {outputs}")
         # self._queue.close()
         if "response" in outputs:
             self._queue.put(StreamMessage("response", outputs["response"]))
@@ -68,8 +68,8 @@ class OnStream(BaseCallbackHandler):
             self, serialized: Dict[str, Any], input_str: str, **kwargs: Any
     ) -> None:
         """Run when tool starts running."""
-        self._logger.debug(f"Tool started with input: {input_str} ( serialized: {json.dumps(serialized)} )")
+        self._logger.debug(f"Tool started with input: {input_str} ( serialized: {serialized} )")
 
     def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
         """Run on agent action."""
-        self._logger.debug(f"Agent action: {json.dumps(action)}")
+        self._logger.debug(f"Agent action: {action}")

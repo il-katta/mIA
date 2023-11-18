@@ -89,15 +89,9 @@ def gui(conf: config.Config, sysstats: SystemStats):
         outputs=[chatbot],
         queue=False
     ).then(
-        bot.on_message,
-        inputs=[
-            chatbot,
-            conf.tts_generator_state,
-            conf.elevenlabs_voice_id_state,
-            conf.bark_voice_id_state,
-            conf.bark_device_state
-        ],
-        outputs=[chatbot, audio_out]
+        bot.on_file,
+        inputs=[chatbot, upload_btn],
+        outputs=[chatbot]
     )
 
     clear_button.click(
