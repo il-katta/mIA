@@ -10,6 +10,7 @@ import gradio as gr
 from components import (
     settings, chat, music_images_generator, remove_backgroud, image_upscale, invisible_watermark,
     generate_music, generate_sounds, safetensors_helper, generate_image, edit_image, random_audio, image_tagger,
+    video_to_text,
     system_info
 )
 import config
@@ -115,6 +116,13 @@ with gr.Blocks() as demo:
             image_tagger.gui(sysstats=sysstats)
     else:
         logging.warning("Image Tagger is not available")
+
+    if video_to_text.is_available():
+        logging.info("Video to Text is available")
+        with gr.Tab("Video to Text"):
+            video_to_text.gui(sysstats=sysstats)
+    else:
+        logging.warning("Video to Text is not available")
 
     with gr.Tab("Settings"):
         settings.gui(conf=conf, sysstats=sysstats)
